@@ -1,0 +1,38 @@
+# app/__init__.py
+
+import os
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_bcrypt import Bcrypt
+from marshmallow import Schema, fields, ValidationError
+from .config import config  # assuming config is a dictionary of config classes
+from flask_mail import Mail
+
+db = SQLAlchemy()
+bcrypt = Bcrypt()
+migrate = Migrate()
+mail = Mail()
+
+
+
+
+def create_app(config_mode=None):
+    if config_mode is None:
+        # fallback to environment variable or default
+        config_mode = os.getenv('FLASK_CONFIG', 'development')
+
+    if config_mode not in config:
+        raise ValueError(f"Invalid config mode: {config_mode}")
+
+    app = Flask(__name__)
+    app.config.from_object(config[config_mode])
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Register blueprints or routes here if needed
+    # from .routes import main as main_blueprint
+    # app.register_blueprint(main_blueprint)
+
+    return app
