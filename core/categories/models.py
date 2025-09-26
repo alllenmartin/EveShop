@@ -10,6 +10,7 @@ class Category(db.Model):
     id = db.Column(UUID(as_uuid=True),nullable=False, primary_key=True,default=uuid.uuid4)
     name = db.Column(db.String, unique=True, nullable=False)
     description = db.Column(db.String,nullable=False)
+    products = db.relationship("Products", backref="category", lazy=True)
     
     def __repr__(self):
         return f"<name {self.name}>"

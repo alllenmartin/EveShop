@@ -1,0 +1,286 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+
+const CataloguePage = () => {
+  const allProducts = [
+    {
+      id: 1,
+      name: "La Roche Posay Anthelios Baby Lotion SPF50+, 50ml",
+      price: 3899,
+      image:
+        "https://pharmily.co.ke/storage//files/2024/05/13/lrp_anthelios_baby_lotion_50ml.jpg",
+      rating: 0,
+      description: "High quality sunscreen for babies.",
+    },
+    {
+      id: 2,
+      name: "Vitamin C Supplements 1000mg",
+      price: 1200,
+      image: "https://via.placeholder.com/300x300.png?text=Vitamin+C",
+      rating: 4,
+      description: "Boosts immunity and overall health.",
+    },
+    {
+      id: 3,
+      name: "Herbal Skin Care Cream",
+      price: 850,
+      image: "https://via.placeholder.com/300x300.png?text=Herbal+Cream",
+      rating: 5,
+      description: "Gentle herbal cream for healthy skin.",
+    },
+    {
+      id: 4,
+      name: "Multivitamin Tablets",
+      price: 2400,
+      image: "https://via.placeholder.com/300x300.png?text=Multivitamin",
+      rating: 3,
+      description: "Daily multivitamin supplement.",
+    },
+  ];
+
+  const categories = [
+    "Baby and Pregnancy Care",
+    "Sexual and Reproductive Health",
+    "Supplements and Vitamins",
+    "Oral Care Products",
+    "Over The Counter",
+    "Beauty Products",
+    "Herbal Products",
+    "Medical Equipment",
+    "Disinfectants",
+    "Personal care",
+  ];
+
+  const [products, setProducts] = useState(allProducts);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(6);
+  const [sort, setSort] = useState("featured");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [cart, setCart] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Sorting & filtering
+  useEffect(() => {
+    let filtered = [...allProducts];
+
+    if (selectedCategory) {
+      filtered = filtered.filter((p) =>
+        p.name.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter((p) =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (sort === "low_price") filtered.sort((a, b) => a.price - b.price);
+    else if (sort === "high_price") filtered.sort((a, b) => b.price - a.price);
+    else if (sort === "avg_rating") filtered.sort((a, b) => b.rating - a.rating);
+
+    setProducts(filtered);
+    setPage(1); // Reset page on filter change
+  }, [sort, selectedCategory, searchQuery]);
+
+  const totalPages = Math.ceil(products.length / perPage);
+  const startIndex = (page - 1) * perPage;
+  const displayedProducts = products.slice(startIndex, startIndex + perPage);
+
+  const addToCart = (product) => {
+    setCart((prev) => [...prev, product]);
+    alert(`Added ${product.name} to cart`);
+  };
+
+  return (
+    <div id="top">
+      {/* Top Navigation */}
+      <nav className="navbar navbar-expand-lg navbar-light bg-white sticky-top mb-4 p-3">
+        <div className="container d-flex justify-content-between align-items-center">
+          <Link to="/" className="navbar-brand">
+            <img
+              src="https://pharmily.co.ke/img/logo.png"
+              width="150"
+              alt="Logo"
+            />
+          </Link>
+
+          {/* Search Bar */}
+          <div className="d-flex w-50">
+            <input
+              type="text"
+              className="form-control me-2"
+              placeholder="Search for product..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setPage(1)}
+            >
+              <i className="bi bi-search"></i>
+            </button>
+          </div>
+
+          {/* Cart */}
+          <div className="d-flex align-items-center">
+            <button className="btn btn-outline-primary position-relative">
+              <i className="bi bi-cart"></i> Cart
+              <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {cart.length}
+              </span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <div className="container">
+        <div className="row">
+          {/* Sidebar */}
+          <div className="col-lg-3 mb-4">
+            <div className="search-result-sidebar">
+              <div className="widget-category mb-4">
+                <h4 className="section-title style-1 mb-3">CATEGORY</h4>
+                <ul className="categories">
+                  {categories.map((cat, idx) => (
+                    <li key={idx}>
+                      <button
+                        className={`btn btn-link p-0 ${
+                          selectedCategory === cat ? "fw-bold" : ""
+                        }`}
+                        onClick={() => setSelectedCategory(cat)}
+                      >
+                        {cat}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          <div className="col-lg-9">
+            {/* Sorting & Per Page */}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                Sort by:{" "}
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="form-select d-inline-block w-auto"
+                >
+                  <option value="featured">Featured</option>
+                  <option value="low_price">Price: Low to High</option>
+                  <option value="high_price">Price: High to Low</option>
+                  <option value="avg_rating">Avg. Rating</option>
+                </select>
+              </div>
+              <div>
+                Items per page:{" "}
+                <select
+                  value={perPage}
+                  onChange={(e) => setPerPage(Number(e.target.value))}
+                  className="form-select d-inline-block w-auto"
+                >
+                  <option value={3}>3</option>
+                  <option value={6}>6</option>
+                  <option value={9}>9</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="row product-grid-3">
+              {displayedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="col-lg-4 col-md-4 col-6 col-sm-6 mb-3"
+                >
+                  <div className="product-card p-2">
+                    <div className="product-img">
+                      <Link to={`/product/${product.id}`}>
+                        <img
+                          className="default-img"
+                          src={product.image}
+                          alt={product.name}
+                        />
+                      </Link>
+                    </div>
+                    <div className="product-content-wrap mt-2">
+                      <p className="item-title lc-2 mb-1">
+                        <Link to={`/product/${product.id}`}>{product.name}</Link>
+                      </p>
+                      <div className="small mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <i
+                            key={i}
+                            className={`bi bi-star-fill ${
+                              i < product.rating ? "text-warning" : "text-muted"
+                            }`}
+                          ></i>
+                        ))}
+                      </div>
+                      <div className="product-price mb-2">
+                        <span>
+                          <span className="price-unite">Ksh</span>{" "}
+                          {product.price.toLocaleString()}
+                        </span>
+                      </div>
+                      <button
+                        className="btn btn-sm btn-primary w-100"
+                        onClick={() => addToCart(product)}
+                      >
+                        <i className="bi bi-cart-plus"></i> Add To Cart
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <nav>
+              <ul className="pagination justify-content-center mt-3">
+                <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+                  <button
+                    className="page-link"
+                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  >
+                    Previous
+                  </button>
+                </li>
+                {[...Array(totalPages)].map((_, i) => (
+                  <li
+                    key={i}
+                    className={`page-item ${page === i + 1 ? "active" : ""}`}
+                  >
+                    <button className="page-link" onClick={() => setPage(i + 1)}>
+                      {i + 1}
+                    </button>
+                  </li>
+                ))}
+                <li
+                  className={`page-item ${
+                    page === totalPages ? "disabled" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  >
+                    Next
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CataloguePage;

@@ -8,11 +8,13 @@ from flask_bcrypt import Bcrypt
 from marshmallow import Schema, fields, ValidationError
 from .config import config  # assuming config is a dictionary of config classes
 from flask_mail import Mail
+from flask_cors import CORS
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 migrate = Migrate()
 mail = Mail()
+cors=CORS()
 
 
 

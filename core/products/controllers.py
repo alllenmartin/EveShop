@@ -23,7 +23,7 @@ def list_all_products_controller():
 # --------------------------     
 def create_product_controller():
      try:
-       request_form = request.form.to_dict()       
+       request_form = request.form.to_dict()  or request.get_json()    
        try:
           data = product_schema.load(request_form)
           print(data)
@@ -31,7 +31,7 @@ def create_product_controller():
          return jsonify(err.messages), 400
 
 
-  
+       print(data)
        new_product = Products(**data)
        db.session.add(new_product)
        db.session.commit()
@@ -107,4 +107,12 @@ def delete_product_controller(id):
         "success": True,
         "message": f"Product '{product.name}' deleted successfully!"
     })
+    
+    
+def get_product_by_slug(id):
+    product = Products.query.filter_by(id=id).first()
+    if product:
+        return jsonify(product.to_dict())  # no iteration needed
+    return jsonify({"error": "Product not found"}), 404
+
     

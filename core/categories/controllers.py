@@ -22,7 +22,7 @@ def list_all_category_controller():
 # --------------------------   
 def create_category_controller():
     try:
-        request_form = request.form.to_dict()
+        request_form = request.form.to_dict()  or request.get_json()
         try:
            data = category_schema.load(request_form)
         except ValidationError as err:
@@ -109,3 +109,15 @@ def delete_category_controller(id):
         "success": True,
         "message": f"Product '{category.name}' deleted successfully!"
     })
+    
+
+def get_category_by_slug(id):
+    category = Category.query.filter_by(id=id).first()
+    if category:
+        return jsonify({"category": {
+            "id": category.id,
+            "name": category.name,
+            "slug": category.id,
+            "description": category.description
+        }})
+    return jsonify({"error": "Category not found"}), 404

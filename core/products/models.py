@@ -14,10 +14,13 @@ class Products(db.Model, UserMixin):
     description = db.Column(db.String,nullable=False)
     price = db.Column(db.Numeric(precision=10,scale=2),nullable=False) 
     quantity = db.Column(db.Integer)
-    category_id = db.Column(db.String)
+    category_id = db.Column(UUID(as_uuid=True), db.ForeignKey('categories.id'))
+    image = db.Column(db.String, nullable=True)
+    rating = db.Column(db.Integer, default=0, nullable=False)
     # order_items = db.relationship("OrderItems", backref="product", lazy=True)
     # cart_items = db.relationship("CartItems", backref="cart_product", lazy=True)
     created_at = db.Column(db.DateTime, nullable=False)
+    
     
    
     
@@ -37,7 +40,9 @@ class Products(db.Model, UserMixin):
             'description': self.description,
             'price': self.price,
             'quantity': self.quantity,
-            'category_id': self.category_id,
+            "category": self.category.name if self.category else None,
+            'rating': self.rating,
+            'image': self.image,  
             'created_at':self.created_at
         }
         
