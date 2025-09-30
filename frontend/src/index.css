@@ -949,6 +949,16 @@ a.purple-badge:hover{
     color: transparent;
     padding: 0 0.5rem;
 }
+.product-img {
+  transition: transform 0.3s ease;
+}
+
+.product-img:hover {
+  transform: scale(1.15);
+  z-index: 2; /* ensure it overlays other cards if needed */
+  text-decoration: none;
+}
+
 .guest-auth-card .form-group:last-of-type{
     margin-bottom: 0 !important;
 }
@@ -1914,4 +1924,5 @@ li:last-of-type .dropdown-item{
     .product-content-wrap .old-price::before{
         display: none;
     }
+    
 }

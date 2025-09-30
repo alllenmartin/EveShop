@@ -322,95 +322,113 @@ const CataloguePage = () => {
 
               <div className="row">
                 {paginatedProducts.length === 0 ? (
-                  <div className="col-12 text-center py-5">No products found.</div>
+                    <div className="col-12 text-center py-5">No products found.</div>
                 ) : (
-                  paginatedProducts.map(product => (
+                    paginatedProducts.map(product => (
                     <div key={product.id} className="col-lg-4 col-md-6 col-6 mb-3">
-                      <div className="card p-2 h-100">
-                        <img
-                          src={product.image}
-                          className="card-img-top"
-                          alt={product.name}
-                          style={{ maxHeight: "120px", objectFit: "contain" }}
-                        />
+                        <div className="card p-2 h-100">
+                        {/* Image wrapper to handle hover zoom without affecting card height */}
+                        <div style={{ overflow: "hidden" }}>
+                            <Link
+                            to={`/product/${product.id}`}
+                            style={{ display: "block", textDecoration: "none" }}
+                            >
+                            <img
+                                src={product.image}
+                                alt={product.name}
+                                style={{
+                                maxHeight: "140px",
+                                objectFit: "contain",
+                                width: "100%",
+                                display: "block",
+                                transition: "transform 0.3s ease",
+                                }}
+                                className="product-img"
+                            />
+                            </Link>
+                        </div>
+
                         <div className="card-body p-2 d-flex flex-column">
-                          <h6 className="card-title mb-1" style={{ fontSize: "0.85rem" }}>
+                            <h6 className="card-title mb-1" style={{ fontSize: "0.85rem" }}>
                             {product.name}
-                          </h6>
-                          <div className="mb-1">
+                            </h6>
+
+                            <div className="mb-1">
                             {[...Array(5)].map((_, i) => (
-                              <i
+                                <i
                                 key={i}
                                 className={`bi bi-star-fill ${i < product.rating ? "text-warning" : "text-muted"}`}
                                 style={{ fontSize: "0.7rem" }}
-                              ></i>
+                                ></i>
                             ))}
-                          </div>
-                          <p className="mb-2 text-primary" style={{ fontSize: "0.9rem" }}>
-                            Ksh {product.price.toLocaleString()}
-                          </p>
+                            </div>
 
-                          <div className="d-flex gap-1 mb-2 align-items-center">
+                            <p className="mb-2 text-primary" style={{ fontSize: "0.9rem" }}>
+                            Ksh {product.price.toLocaleString()}
+                            </p>
+
+                            <div className="d-flex gap-1 mb-2 align-items-center">
                             <button
-                              className="btn btn-sm btn-outline-secondary p-1"
-                              onClick={() =>
+                                className="btn btn-sm btn-outline-secondary p-1"
+                                onClick={() =>
                                 setQuantities(prev => ({
-                                  ...prev,
-                                  [product.id]: Math.max(1, prev[product.id] - 1),
+                                    ...prev,
+                                    [product.id]: Math.max(1, prev[product.id] - 1),
                                 }))
-                              }
+                                }
                             >
-                              -
+                                -
                             </button>
                             <input
-                              type="number"
-                              className="form-control form-control-sm text-center"
-                              style={{ width: "40px", padding: "0" }}
-                              value={quantities[product.id]}
-                              onChange={e =>
+                                type="number"
+                                className="form-control form-control-sm text-center"
+                                style={{ width: "40px", padding: "0" }}
+                                value={quantities[product.id]}
+                                onChange={e =>
                                 setQuantities(prev => ({
-                                  ...prev,
-                                  [product.id]: Math.max(1, Number(e.target.value)),
+                                    ...prev,
+                                    [product.id]: Math.max(1, Number(e.target.value)),
                                 }))
-                              }
+                                }
                             />
                             <button
-                              className="btn btn-sm btn-outline-secondary p-1"
-                              onClick={() =>
+                                className="btn btn-sm btn-outline-secondary p-1"
+                                onClick={() =>
                                 setQuantities(prev => ({
-                                  ...prev,
-                                  [product.id]: prev[product.id] + 1,
+                                    ...prev,
+                                    [product.id]: prev[product.id] + 1,
                                 }))
-                              }
+                                }
                             >
-                              +
+                                +
                             </button>
 
                             <Link
-                              to={`/product/${product.id}`}
-                              className="btn btn-link text-primary p-0 ms-auto"
-                              style={{ fontSize: "0.85rem", textDecoration: "none" }}
+                                to={`/product/${product.id}`}
+                                className="btn btn-link text-primary p-0 ms-auto"
+                                style={{ fontSize: "0.85rem", textDecoration: "none" }}
                             >
-                              View Details →
+                                View Details →
                             </Link>
-                          </div>
+                            </div>
 
-                          <p className="fw-bold mb-2">
+                            <p className="fw-bold mb-2">
                             Subtotal: Ksh {(product.price * quantities[product.id]).toLocaleString()}
-                          </p>
+                            </p>
 
-                          <button
+                            <button
                             className="btn btn-sm btn-outline-primary mt-auto"
                             onClick={() => handleAddToCart(product)}
-                          >
+                            >
                             <i className="bi bi-cart-plus"></i> Add
-                          </button>
+                            </button>
                         </div>
-                      </div>
+                        </div>
                     </div>
-                  ))
+                    ))
                 )}
-              </div>
+                </div>
+
 
               {totalPages > 1 && (
                 <nav>

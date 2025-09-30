@@ -153,7 +153,21 @@ const ProductDetailsPage = () => {
         <button className="btn btn-link mb-3" onClick={() => navigate(-1)}>← Back to catalogue</button>
         <div className="row">
           <div className="col-md-6">
-            <img src={product.image} alt={product.name} className="img-fluid" />
+        <div style={{ overflow: "hidden" }}>
+  <img
+    src={product.image}
+    alt={product.name}
+    className="img-fluid product-img"
+    style={{
+      transition: "transform 0.3s ease",
+      maxHeight: "240px",
+      objectFit: "contain",
+      width: "100%",
+      display: "block",
+    }}
+  />
+</div>
+
           </div>
           <div className="col-md-6">
             <h3>{product.name}</h3>

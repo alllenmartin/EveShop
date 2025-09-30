@@ -9,6 +9,7 @@ import CategoryDetails from './Components/Category/CategoryDetails';
 import NavBar from './Components/NavBar';
 import ProductDetailsPage from './Components/ProductDetailsPage'; 
 import CatalogueForm from './Components/CatalogueForm';
+import AdminPage from './Components/AdminPage';
 import { lazy, Suspense } from 'react';
 
 
@@ -46,12 +47,13 @@ const App = () => {
        {/* <NavBar /> */}
          <Suspense fallback={<div className="container">Loading...</div>}>
       <Routes>
-          <Route path="/register" element={<RegisterForm />} />
+        <Route path="/register" element={<RegisterForm />} />
         <Route path="/category" element={<CategoryForm />} />
         <Route path="/categories/:id" element={<CategoryDetails />} />
         <Route path="/login" element={<LoginForm />} />
-          <Route path="/products" element={<CatalogueForm />} />
-          <Route path="/product/:id" element={<ProductDetailsPage />} />
+        <Route path="/products" element={<CatalogueForm />} />
+        <Route path="/product/:id" element={<ProductDetailsPage />} />
+        <Route path="/admin" element={<AdminPage />} />
        
       </Routes>
       </Suspense>
