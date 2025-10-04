@@ -6,3 +6,15 @@ instance/
 .venv/
 venv/
 .env.*
+.idea/
+.vscode/
+.DS_Store
+*.log
+*.sqlite
+*.db
+*.sqlite3
+*.db3
+*.bak
+*.swp
+*.swo
+.migrations/versions/
