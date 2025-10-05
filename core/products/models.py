@@ -24,12 +24,13 @@ class Products(db.Model, UserMixin):
     
    
     
-    def __init__(self,name,description,price,quantity,category_id):
+    def __init__(self,name,description,price,quantity,image,category_id):
         self.created_at = datetime.now()
         self.name = name
         self.description= description
         self.price = price
         self.quantity = quantity
+        self.image=image
         self.category_id = category_id
        
     

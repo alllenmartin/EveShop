@@ -10,6 +10,7 @@ const AdminPage = () => {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -62,7 +63,14 @@ const AdminPage = () => {
   };
 
   const resetProductForm = () => {
-    setName(""); setPrice(""); setDescription(""); setCategoryId(""); setImage(null); setImagePreview(null); setEditingProduct(null);
+    setName("");
+    setPrice("");
+    setDescription("");
+    setCategoryId("");
+    setQuantity(1);
+    setImage(null);
+    setImagePreview(null);
+    setEditingProduct(null);
   };
 
   const handleAddOrEditProduct = async (e) => {
@@ -73,6 +81,7 @@ const AdminPage = () => {
       formData.append("price", price);
       formData.append("description", description);
       formData.append("category_id", categoryId);
+      formData.append("quantity", quantity);
       if (image) formData.append("image", image);
 
       if (editingProduct) {
@@ -84,6 +93,7 @@ const AdminPage = () => {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
+
       resetProductForm();
       fetchProducts();
     } catch (err) {
@@ -97,7 +107,8 @@ const AdminPage = () => {
     setPrice(prod.price);
     setDescription(prod.description);
     setCategoryId(prod.category_id || "");
-    setImagePreview(prod.image);
+    setQuantity(prod.quantity || 1);
+    setImagePreview(prod.image || null);
   };
 
   const handleDeleteProduct = async (id) => {
@@ -146,13 +157,13 @@ const AdminPage = () => {
 
   return (
     <div className="container my-4">
-      <h2 className="mb-4">Admin Dashboard</h2>
+      <h2 className="mb-4 text-success">Admin Dashboard</h2>
 
       <div className="row mb-4">
         {/* Product Form */}
         <div className="col-md-6 mb-3">
-          <div className="card p-3 h-100">
-            <h4>{editingProduct ? "Edit Product" : "Add Product"}</h4>
+          <div className="card p-3 h-100 shadow-sm">
+            <h4 className="text-success">{editingProduct ? "Edit Product" : "Add Product"}</h4>
             <form onSubmit={handleAddOrEditProduct}>
               <input type="text" className="form-control mb-2" placeholder="Product Name" value={name} onChange={e => setName(e.target.value)} required />
               <input type="number" className="form-control mb-2" placeholder="Price" value={price} onChange={e => setPrice(e.target.value)} required />
@@ -161,17 +172,22 @@ const AdminPage = () => {
                 <option value="">Select Category</option>
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
               </select>
-              <input type="file" className="form-control mb-2" onChange={e => { setImage(e.target.files[0]); setImagePreview(URL.createObjectURL(e.target.files[0])); }} />
+              <input type="number" className="form-control mb-2" placeholder="Quantity" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1} />
+              <input type="file" className="form-control mb-2" onChange={e => {
+                const file = e.target.files[0];
+                setImage(file);
+                setImagePreview(file ? URL.createObjectURL(file) : null);
+              }} />
               {imagePreview && <img src={imagePreview} alt="Preview" className="img-fluid mb-2" style={{ height: "100px", objectFit: "contain" }} />}
-              <button className="btn btn-primary w-100">{editingProduct ? "Update Product" : "Add Product"}</button>
+              <button className="btn btn-success w-100">{editingProduct ? "Update Product" : "Add Product"}</button>
             </form>
           </div>
         </div>
 
         {/* Category Form */}
         <div className="col-md-6 mb-3">
-          <div className="card p-3 h-100">
-            <h4>{editingCategory ? "Edit Category" : "Add Category"}</h4>
+          <div className="card p-3 h-100 shadow-sm">
+            <h4 className="text-success">{editingCategory ? "Edit Category" : "Add Category"}</h4>
             <form onSubmit={handleAddOrEditCategory} className="mb-2">
               <input type="text" className="form-control mb-2" placeholder="Category Name" value={categoryName} onChange={e => setCategoryName(e.target.value)} required />
               <button className="btn btn-success w-100">{editingCategory ? "Update Category" : "Add Category"}</button>
@@ -184,7 +200,7 @@ const AdminPage = () => {
                 <li key={cat.id} className="list-group-item d-flex justify-content-between align-items-center">
                   {cat.name}
                   <div>
-                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleEditCategory(cat)}>Edit</button>
+                    <button className="btn btn-sm btn-outline-success me-2" onClick={() => handleEditCategory(cat)}>Edit</button>
                     <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteCategory(cat.id)}>Delete</button>
                   </div>
                 </li>
@@ -194,17 +210,22 @@ const AdminPage = () => {
             {/* Category Pagination */}
             {totalCatPages > 1 && (
               <nav>
-                <ul className="pagination">
+                <ul className="pagination justify-content-start">
                   <li className={`page-item ${catPage === 1 ? "disabled" : ""}`}>
-                    <button className="page-link" onClick={() => setCatPage(p => Math.max(1, p-1))}>Prev</button>
+                    <button className="btn btn-sm btn-outline-success me-1" onClick={() => setCatPage(p => Math.max(1, p - 1))}>Prev</button>
                   </li>
                   {Array.from({ length: totalCatPages }, (_, i) => (
-                    <li key={i} className={`page-item ${i+1 === catPage ? "active" : ""}`}>
-                      <button className="page-link" onClick={() => setCatPage(i+1)}>{i+1}</button>
+                    <li key={i} className="page-item">
+                      <button
+                        className={`btn btn-sm me-1 ${i + 1 === catPage ? "btn-success text-white" : "btn-outline-success"}`}
+                        onClick={() => setCatPage(i + 1)}
+                      >
+                        {i + 1}
+                      </button>
                     </li>
                   ))}
                   <li className={`page-item ${catPage === totalCatPages ? "disabled" : ""}`}>
-                    <button className="page-link" onClick={() => setCatPage(p => Math.min(totalCatPages, p+1))}>Next</button>
+                    <button className="btn btn-sm btn-outline-success" onClick={() => setCatPage(p => Math.min(totalCatPages, p + 1))}>Next</button>
                   </li>
                 </ul>
               </nav>
@@ -214,38 +235,39 @@ const AdminPage = () => {
       </div>
 
       {/* Products Grid */}
-      <h4>Products</h4>
+      <h4 className="text-success">Products</h4>
       <div className="row row-cols-1 row-cols-md-3 g-3 mb-3">
         {currentProducts.map(prod => (
           <div key={prod.id} className="col">
-            <div className="card h-100 d-flex flex-column justify-content-between p-2">
-            {prod.image && (
-            <div style={{ height: "140px", overflow: "hidden", marginBottom: "0.5rem" }}>
-                <img
-                src={prod.image}
-                alt={prod.name}
-                className="card-img-top product-img"
-                style={{
-                    height: "100%",
-                    width: "100%",
-                    objectFit: "contain",
-                    transition: "transform 0.3s ease",
-                    // backgroundColor: "#f8f9fa",
-                }}
-                />
-            </div>
-            )}
+            <div className="card h-100 d-flex flex-column justify-content-between p-2 shadow-sm">
+              {prod.image && (
+                <div style={{ height: "140px", overflow: "hidden", marginBottom: "0.5rem" }}>
+                  <img
+                    src={prod.image}
+                    alt={prod.name}
+                    className="card-img-top product-img"
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      objectFit: "contain",
+                      transition: "transform 0.3s ease",
+                    }}
+                  />
+                </div>
+              )}
 
               <div className="card-body d-flex flex-column justify-content-between">
                 <div>
                   <h6 className="card-title">{prod.name}</h6>
                   <p className="card-text mb-1">${prod.price}</p>
-                  <small className="text-muted">Category: {prod.category}</small>
+                  <small className="text-muted">Category: {getCategoryName(prod.category_id)}</small>
                   <br />
                   <small className="text-truncate d-block" style={{ maxHeight: "3em", overflow: "hidden" }}>{prod.description}</small>
+                  <br />
+                  <small className="text-muted">Quantity: {prod.quantity}</small>
                 </div>
                 <div className="mt-2">
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleEditProduct(prod)}>Edit</button>
+                  <button className="btn btn-sm btn-outline-success me-2" onClick={() => handleEditProduct(prod)}>Edit</button>
                   <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteProduct(prod.id)}>Delete</button>
                 </div>
               </div>
@@ -257,17 +279,22 @@ const AdminPage = () => {
       {/* Product Pagination */}
       {totalProdPages > 1 && (
         <nav>
-          <ul className="pagination">
+          <ul className="pagination justify-content-start">
             <li className={`page-item ${prodPage === 1 ? "disabled" : ""}`}>
-              <button className="page-link" onClick={() => setProdPage(p => Math.max(1, p-1))}>Prev</button>
+              <button className="btn btn-sm btn-outline-success me-1" onClick={() => setProdPage(p => Math.max(1, p - 1))}>Prev</button>
             </li>
             {Array.from({ length: totalProdPages }, (_, i) => (
-              <li key={i} className={`page-item ${i+1 === prodPage ? "active" : ""}`}>
-                <button className="page-link" onClick={() => setProdPage(i+1)}>{i+1}</button>
+              <li key={i} className="page-item">
+                <button
+                  className={`btn btn-sm me-1 ${i + 1 === prodPage ? "btn-success text-white" : "btn-outline-success"}`}
+                  onClick={() => setProdPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
               </li>
             ))}
             <li className={`page-item ${prodPage === totalProdPages ? "disabled" : ""}`}>
-              <button className="page-link" onClick={() => setProdPage(p => Math.min(totalProdPages, p+1))}>Next</button>
+              <button className="btn btn-sm btn-outline-success" onClick={() => setProdPage(p => Math.min(totalProdPages, p + 1))}>Next</button>
             </li>
           </ul>
         </nav>

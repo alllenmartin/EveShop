@@ -953,6 +953,7 @@ a.purple-badge:hover{
   transition: transform 0.3s ease;
 }
 
+
 .product-img:hover {
   transform: scale(1.15);
   z-index: 2; /* ensure it overlays other cards if needed */

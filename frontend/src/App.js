@@ -17,6 +17,9 @@ import { lazy, Suspense } from 'react';
 
 import { Routes, Route } from 'react-router-dom';
 import CataloguePage from './Components/CatalogueForm';
+import ForgotPassword from './Components/ForgotPassword';
+import ResetPassword from './Components/ResetPassword';
+import OTPPage from './Components/OTPPage';
 const CategoryForm = lazy(() => import('./Components/Category/CategoryForm'));
 
 // function App() { 
@@ -54,6 +57,9 @@ const App = () => {
         <Route path="/products" element={<CatalogueForm />} />
         <Route path="/product/:id" element={<ProductDetailsPage />} />
         <Route path="/admin" element={<AdminPage />} />
+         <Route path="/forgotpass" element={<ForgotPassword />} />
+         <Route path="/resetpass" element={<ResetPassword />} />
+          <Route path="/otp" element={<OTPPage />} />
        
       </Routes>
       </Suspense>

@@ -23,7 +23,8 @@ def list_all_products_controller():
 # --------------------------     
 def create_product_controller():
      try:
-       request_form = request.form.to_dict()  or request.get_json()    
+       request_form = request.form.to_dict()  or request.get_json()   
+       print(request_form) 
        try:
           data = product_schema.load(request_form)
           print(data)
