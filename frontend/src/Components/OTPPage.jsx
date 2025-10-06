@@ -22,6 +22,10 @@ const OTPPage = () => {
   const [shake, setShake] = useState(false);
   const [glow, setGlow] = useState(false);
 
+  // Resend OTP state
+  const [resendTimer, setResendTimer] = useState(30);
+  const [canResend, setCanResend] = useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => setFadeIn(true), 50);
     return () => clearTimeout(timer);
@@ -42,6 +46,16 @@ const OTPPage = () => {
       return () => clearTimeout(timer);
     }
   }, [success]);
+
+  // Countdown for resend OTP
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const interval = setInterval(() => setResendTimer(prev => prev - 1), 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCanResend(true);
+    }
+  }, [resendTimer]);
 
   const handleChange = (e, index) => {
     const value = e.target.value.replace(/\D/, ""); // only numbers
@@ -91,6 +105,26 @@ const OTPPage = () => {
     }
   };
 
+  const handleResend = async () => {
+    if (!canResend) return;
+
+    try {
+      const res = await fetch("http://localhost:5000/resend-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) throw new Error("Failed to resend OTP");
+      await res.json();
+
+      setSuccess("A new OTP has been sent!");
+      setResendTimer(30);
+      setCanResend(false);
+    } catch (err) {
+      setError(err.message || "Failed to resend OTP");
+    }
+  };
+
   return (
     <main
       className="d-flex justify-content-center align-items-center vh-100"
@@ -120,17 +154,24 @@ const OTPPage = () => {
             ))}
           </div>
 
-          <button type="submit" className="btn btn-success btn-sm w-100">
+          <button type="submit" className="btn btn-success btn-sm w-100 mb-2">
             {loading && <span className="spinner-border spinner-border-sm me-2"></span>}
             {loading ? "Verifying..." : "Verify OTP"}
           </button>
         </form>
 
-        {error && <p className="text-danger mt-2 small">{error}</p>}
-        {success && <p className="text-success mt-2 small">{success}</p>}
+        {error && <p className="text-danger mt-1 small">{error}</p>}
+        {success && <p className="text-success mt-1 small">{success}</p>}
 
         <div className="mt-2 text-center">
-          <p className="small">Didn't receive OTP? <span className="text-success fw-bold" style={{ cursor: "pointer" }}>Resend</span></p>
+          <button
+            onClick={handleResend}
+            className="btn btn-link p-0 text-success fw-bold small"
+            disabled={!canResend}
+            style={{ cursor: canResend ? "pointer" : "not-allowed" }}
+          >
+            {canResend ? "Resend OTP" : `Resend in ${resendTimer}s`}
+          </button>
         </div>
       </div>
 

@@ -20,6 +20,7 @@ import CataloguePage from './Components/CatalogueForm';
 import ForgotPassword from './Components/ForgotPassword';
 import ResetPassword from './Components/ResetPassword';
 import OTPPage from './Components/OTPPage';
+import WishlistPage from './Components/WishlistPage';
 const CategoryForm = lazy(() => import('./Components/Category/CategoryForm'));
 
 // function App() { 
@@ -60,6 +61,8 @@ const App = () => {
          <Route path="/forgotpass" element={<ForgotPassword />} />
          <Route path="/resetpass" element={<ResetPassword />} />
           <Route path="/otp" element={<OTPPage />} />
+           <Route path="/wishlist" element={<WishlistPage />} />
+
        
       </Routes>
       </Suspense>

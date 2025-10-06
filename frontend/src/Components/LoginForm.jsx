@@ -137,7 +137,7 @@ const LoginPage = () => {
               <input type="checkbox" name="remember" id="remember" checked={formData.remember} onChange={handleChange} className="form-check-input border-success" />
               <label htmlFor="remember" className="form-check-label small">Remember Me</label>
             </div>
-            <Link to="/forgot-password" className="text-success small mt-1 mt-sm-0">Forgot Password?</Link>
+            <Link to="/forgotpass" className="text-success small mt-1 mt-sm-0">Forgot Password?</Link>
           </div>
 
           <button type="submit" className="btn btn-success btn-sm w-100 mt-2">

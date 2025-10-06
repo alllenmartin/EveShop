@@ -38,6 +38,9 @@ const CataloguePage = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(["All"]);
 
+  const [showWishlist, setShowWishlist] = useState(false);
+  
+
   // Filters / UI state
   const [selectedCategory, setSelectedCategory] = useState(localStorage.getItem("category") || "All");
   const [searchTerm, setSearchTerm] = useState(localStorage.getItem("search") || "");
@@ -47,6 +50,7 @@ const CataloguePage = () => {
   const [sortOption, setSortOption] = useState(localStorage.getItem("sort") || "default");
   const [itemsPerPage, setItemsPerPage] = useState(Number(localStorage.getItem("itemsPerPage")) || 6);
   const [page, setPage] = useState(Number(localStorage.getItem("page")) || 1);
+  
 
   // Auth / checkout
   const [checkoutMode, setCheckoutMode] = useState(false);
@@ -61,6 +65,37 @@ const CataloguePage = () => {
   const [showCart, setShowCart] = useState(false);
   const [quantities, setQuantities] = useState({});
   const [toasts, setToasts] = useState([]);
+
+
+
+  // Wishlist
+  const [wishlist, setWishlist] = useState(() => {
+    const stored = localStorage.getItem("wishlist");
+    return stored ? JSON.parse(stored) : [];
+  });
+
+   const handleWishlist = (product) => {
+  let newList;
+  let message;
+  
+  if (wishlist.find(p => p.id === product.id)) {
+    // Remove from wishlist
+    newList = wishlist.filter(p => p.id !== product.id);
+    message = `${product.name} removed from wishlist`;
+  } else {
+    // Add to wishlist
+    newList = [...wishlist, product];
+    message = `${product.name} added to wishlist`;
+  }
+  
+  setWishlist(newList);
+  localStorage.setItem("wishlist", JSON.stringify(newList));
+  
+  // Add toast
+  const id = Date.now();
+  setToasts(prev => [...prev, { id, message }]);
+};
+
 
   // Fetch products
   useEffect(() => {
@@ -113,6 +148,9 @@ const CataloguePage = () => {
 
   const grandTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
+
+  
+
   // Cart manipulation functions
   const handleAddToCart = (product) => {
     const existing = cart.find(p => p.id === product.id);
@@ -136,17 +174,16 @@ const CataloguePage = () => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  // Place order (keeps your generateReference logic unchanged)
+  // Place order
   const placeOrder = () => {
     if (!userPhone) {
       alert("Please enter a phone number before placing the order.");
       return;
     }
 
-    // Generate a unique order reference (unchanged)
     const generateReference = () => {
-      const timestamp = Date.now(); // current timestamp
-      const randomStr = Math.floor(Math.random() * 9000 + 1000); // 4-digit random number
+      const timestamp = Date.now();
+      const randomStr = Math.floor(Math.random() * 9000 + 1000);
       return `ORDER-${timestamp}-${randomStr}`;
     };
     const reference = generateReference();
@@ -170,11 +207,10 @@ const CataloguePage = () => {
         return res.json();
       })
       .then(data => {
-        // success UX: toast + cleanup
         const id = Date.now() + 1;
         setToasts(prev => [...prev, { id, message: "Order placed successfully!" }]);
 
-        setCart([]); // clear cart
+        setCart([]);
         setQuantities(products.reduce((acc, p) => ({ ...acc, [p.id]: 1 }), {}));
         setCheckoutMode(false);
         setShowCart(false);
@@ -187,14 +223,12 @@ const CataloguePage = () => {
       });
   };
 
-  // Small helpers for page nav bounds
   const prevPage = () => setPage(p => Math.max(1, p - 1));
   const nextPage = () => setPage(p => Math.min(totalPages, p + 1));
   const goToPage = (n) => setPage(() => Math.max(1, Math.min(totalPages, n)));
 
-  return (
+   return (
     <div id="top" className="bg-light min-vh-100">
-      {/* Toasts */}
       {toasts.map(t => (
         <Toast
           key={t.id}
@@ -229,6 +263,19 @@ const CataloguePage = () => {
               {cart.length > 0 && <span className="position-absolute top-0 start-100 translate-middle badge bg-danger">{cart.length}</span>}
             </button>
 
+                <button 
+        className="btn btn-outline-warning rounded-pill position-relative me-2 px-3"
+        onClick={() => setShowWishlist(true)}
+      >
+        <i className="bi bi-heart me-1"></i> Wishlist
+        {wishlist.length > 0 && (
+          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            {wishlist.length}
+          </span>
+        )}
+      </button>
+
+
             {!isLoggedIn ? (
               <button className="btn btn-outline-success rounded-pill" onClick={() => setIsLoggedIn(true)}>
                 <i className="bi bi-box-arrow-in-right me-1"></i> Login
@@ -242,7 +289,55 @@ const CataloguePage = () => {
         </div>
       </nav>
 
-      {/* Cart Modal (fully functional) */}
+      {/* Wishlist Modal */}
+      {showWishlist && (
+        <div className="modal fade show d-block" tabIndex="-1">
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content rounded-4 shadow-sm">
+              <div className="modal-header">
+                <h5 className="modal-title">Your Wishlist</h5>
+                <button type="button" className="btn-close" onClick={() => setShowWishlist(false)} />
+              </div>
+
+              <div className="modal-body" style={{ minHeight: "220px" }}>
+                {wishlist.length === 0 ? (
+                  <div className="text-center py-5 text-muted">Your wishlist is empty.</div>
+                ) : (
+                  <ul className="list-group">
+                    {wishlist.map(item => (
+                      <li key={item.id} className="list-group-item d-flex align-items-center gap-3">
+                        <img src={item.image} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
+                        <div className="flex-grow-1">
+                          <div className="d-flex justify-content-between align-items-start">
+                            <div>
+                              <div className="fw-semibold">{item.name}</div>
+                              <small className="text-muted">Ksh {item.price.toLocaleString()}</small>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <button className="btn btn-sm btn-success" onClick={() => handleAddToCart(item)}>
+                            <i className="bi bi-cart-plus me-1"></i> Add to Cart
+                          </button>
+                          <button className="btn btn-sm btn-outline-danger" onClick={() => handleWishlist(item)}>
+                            <i className="bi bi-trash"></i> Remove
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowWishlist(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart Modal */}
       {showCart && (
         <div className="modal fade show d-block" tabIndex="-1">
           <div className="modal-dialog modal-lg modal-dialog-centered">
@@ -336,7 +431,6 @@ const CataloguePage = () => {
                 </div>
               </div>
 
-              {/* Footer */}
               {!checkoutMode && (
                 <div className="modal-footer">
                   <div className="me-auto">
@@ -454,9 +548,18 @@ const CataloguePage = () => {
                           <Link to={`/product/${product.id}`} className="ms-auto text-success text-decoration-none small">View →</Link>
                         </div>
 
-                        <button className="btn btn-sm btn-success rounded-pill mt-auto shadow-sm" onClick={() => handleAddToCart(product)}>
-                          <i className="bi bi-cart-plus me-1"></i> Add
-                        </button>
+                        <div className="d-flex gap-2">
+                          <button className="btn btn-sm btn-success rounded-pill mt-auto shadow-sm" onClick={() => handleAddToCart(product)}>
+                            <i className="bi bi-cart-plus me-1"></i> Add
+                          </button>
+
+                          <button
+                            className={`btn btn-sm mt-auto shadow-sm rounded-pill ${wishlist.find(p => p.id === product.id) ? "btn-warning" : "btn-outline-warning"}`}
+                            onClick={() => handleWishlist(product)}
+                          >
+                            <i className="bi bi-heart"></i> Wish
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

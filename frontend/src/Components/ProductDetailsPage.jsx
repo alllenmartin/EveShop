@@ -17,17 +17,23 @@ const ProductDetailsPage = () => {
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
   const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "");
 
+  // Wishlist
+  const [wishlist, setWishlist] = useState(() => {
+    const stored = localStorage.getItem("wishlist");
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [showWishlist, setShowWishlist] = useState(false);
+
   useEffect(() => {
-    // Fetch all products (so we can find one by id)
     fetch("http://localhost:5000/products")
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error("Error loading products:", err));
   }, []);
 
-  // Safe product lookup
   useEffect(() => {
     if (Array.isArray(products) && products.length > 0) {
       const found = products.find(p => p.id.toString() === id);
@@ -35,10 +41,13 @@ const ProductDetailsPage = () => {
     }
   }, [products, id]);
 
-  // Save cart changes
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem("wishlist", JSON.stringify(wishlist));
+  }, [wishlist]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -54,9 +63,30 @@ const ProductDetailsPage = () => {
       setCart(prev => [...prev, { ...product, quantity }]);
     }
     setQuantity(1);
+    setToastMsg(`Added ${product.name} to cart!`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2500);
   };
+
+  const handleWishlist = () => {
+    if (!product) return;
+    const exists = wishlist.find(p => p.id === product.id);
+    let msg = "";
+    if (exists) {
+      const newList = wishlist.filter(p => p.id !== product.id);
+      setWishlist(newList);
+      msg = `${product.name} removed from wishlist`;
+    } else {
+      const newList = [...wishlist, product];
+      setWishlist(newList);
+      msg = `${product.name} added to wishlist`;
+    }
+    setToastMsg(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const isInWishlist = wishlist.find(p => p.id === product?.id);
 
   const handleCartQuantityChange = (id, newQty) => {
     setCart(prev =>
@@ -96,7 +126,6 @@ const ProductDetailsPage = () => {
     0
   );
 
-  // Loading and error handling
   if (!product) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -114,8 +143,7 @@ const ProductDetailsPage = () => {
       <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div className="container-fluid">
           <a className="navbar-brand fw-bold text-success d-flex align-items-center" href="#top">
-           <i className="bi bi-leaf-fill me-2 text-success"></i>EveShop
-
+            <i className="bi bi-leaf-fill me-2 text-success"></i>EveShop
           </a>
           <div className="d-flex align-items-center ms-auto">
             <button
@@ -128,6 +156,12 @@ const ProductDetailsPage = () => {
                   {cart.length}
                 </span>
               )}
+            </button>
+            <button
+              className="btn btn-outline-warning position-relative me-2"
+              onClick={() => setShowWishlist(true)}
+            >
+              <i className={`bi ${isInWishlist ? "bi-heart-fill" : "bi-heart"}`}></i> Wishlist
             </button>
             <button
               className="btn btn-outline-danger"
@@ -148,7 +182,64 @@ const ProductDetailsPage = () => {
           className="toast show position-fixed top-0 end-0 m-3 p-2 bg-success text-white shadow"
           style={{ zIndex: 1055, opacity: 0.95 }}
         >
-          <div>Added {product.name} to cart!</div>
+          <div>{toastMsg}</div>
+        </div>
+      )}
+
+      {/* Wishlist Modal */}
+      {showWishlist && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header bg-warning text-white">
+                <h5 className="modal-title">Your Wishlist</h5>
+                <button type="button" className="btn-close" onClick={() => setShowWishlist(false)}></button>
+              </div>
+              <div className="modal-body">
+                {wishlist.length === 0 ? (
+                  <p>Your wishlist is empty.</p>
+                ) : (
+                  <ul className="list-group">
+                    {wishlist.map(item => (
+                      <li
+                        key={item.id}
+                        className="list-group-item d-flex justify-content-between align-items-center"
+                      >
+                        <div className="d-flex align-items-center gap-2 flex-grow-1">
+                          <span>{item.name}</span>
+                          <button
+                            className="btn btn-sm btn-outline-danger ms-2"
+                            onClick={() =>
+                              setWishlist(prev => prev.filter(p => p.id !== item.id))
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <span className="fw-bold">
+                          Ksh {item.price.toLocaleString()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {wishlist.length > 0 && (
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowWishlist(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -161,7 +252,6 @@ const ProductDetailsPage = () => {
                 <h5 className="modal-title">Your Cart</h5>
                 <button type="button" className="btn-close" onClick={() => setShowCart(false)}></button>
               </div>
-
               <div className="modal-body">
                 {cart.length === 0 ? (
                   <p>Your cart is empty.</p>
@@ -255,7 +345,6 @@ const ProductDetailsPage = () => {
                   </ul>
                 )}
               </div>
-
               {!checkoutMode && cart.length > 0 && (
                 <div className="modal-footer">
                   <div className="me-auto">
@@ -292,7 +381,7 @@ const ProductDetailsPage = () => {
         </button>
         <div className="row">
           <div className="col-md-6">
-            <div className="overflow-hidden rounded-4 hover-shadow">
+            <div className="overflow-hidden rounded-4 hover-shadow position-relative">
               <img
                 src={product.image}
                 alt={product.name}
@@ -309,6 +398,12 @@ const ProductDetailsPage = () => {
                   (e.currentTarget.style.transform = "scale(1)")
                 }
               />
+              <button
+                className="btn btn-sm btn-outline-warning position-absolute top-0 end-0 m-2"
+                onClick={handleWishlist}
+              >
+                <i className={`bi ${isInWishlist ? "bi-heart-fill" : "bi-heart"}`}></i>
+              </button>
             </div>
           </div>
           <div className="col-md-6 d-flex flex-column justify-content-start">
