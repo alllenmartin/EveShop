@@ -13,18 +13,17 @@ const ProductDetailsPage = () => {
     const stored = localStorage.getItem("cart");
     return stored ? JSON.parse(stored) : [];
   });
+  const [wishlist, setWishlist] = useState(() => {
+    const stored = localStorage.getItem("wishlist");
+    return stored ? JSON.parse(stored) : [];
+  });
+
   const [showCart, setShowCart] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "");
-
-  // Wishlist
-  const [wishlist, setWishlist] = useState(() => {
-    const stored = localStorage.getItem("wishlist");
-    return stored ? JSON.parse(stored) : [];
-  });
   const [showWishlist, setShowWishlist] = useState(false);
 
   useEffect(() => {
@@ -49,44 +48,60 @@ const ProductDetailsPage = () => {
     localStorage.setItem("wishlist", JSON.stringify(wishlist));
   }, [wishlist]);
 
+  // For the main product
+  const toggleProductWishlist = () => {
+    if (!product) return;
+    const exists = wishlist.find(p => p.id === product.id);
+    if (exists) {
+      setWishlist(prev => prev.filter(p => p.id !== product.id));
+      showToastMessage(`${product.name} removed from wishlist`);
+    } else {
+      setWishlist(prev => [...prev, product]);
+      showToastMessage(`${product.name} added to wishlist`);
+    }
+  };
+
+  // For other items (e.g. wishlist modal)
+  const toggleWishlistItem = (item) => {
+    const exists = wishlist.find(p => p.id === item.id);
+    if (exists) {
+      setWishlist(prev => prev.filter(p => p.id !== item.id));
+      showToastMessage(`${item.name} removed from wishlist`);
+    } else {
+      setWishlist(prev => [...prev, item]);
+      showToastMessage(`${item.name} added to wishlist`);
+    }
+  };
+
+  const addItemToCart = (item) => {
+    const exists = cart.find(p => p.id === item.id);
+    if (exists) {
+      setCart(prev => prev.map(p => p.id === item.id ? { ...p, quantity: p.quantity + 1 } : p));
+    } else {
+      setCart(prev => [...prev, { ...item, quantity: 1 }]);
+    }
+    showToastMessage(`Added ${item.name} to cart!`);
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
-
     const existing = cart.find(p => p.id === product.id);
     if (existing) {
-      setCart(prev =>
-        prev.map(p =>
-          p.id === product.id ? { ...p, quantity: p.quantity + quantity } : p
-        )
-      );
+      setCart(prev => prev.map(p =>
+        p.id === product.id ? { ...p, quantity: p.quantity + quantity } : p
+      ));
     } else {
       setCart(prev => [...prev, { ...product, quantity }]);
     }
     setQuantity(1);
-    setToastMsg(`Added ${product.name} to cart!`);
+    showToastMessage(`Added ${product.name} to cart!`);
+  };
+
+  const showToastMessage = (message) => {
+    setToastMsg(message);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2500);
   };
-
-  const handleWishlist = () => {
-    if (!product) return;
-    const exists = wishlist.find(p => p.id === product.id);
-    let msg = "";
-    if (exists) {
-      const newList = wishlist.filter(p => p.id !== product.id);
-      setWishlist(newList);
-      msg = `${product.name} removed from wishlist`;
-    } else {
-      const newList = [...wishlist, product];
-      setWishlist(newList);
-      msg = `${product.name} added to wishlist`;
-    }
-    setToastMsg(msg);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2500);
-  };
-
-  const isInWishlist = wishlist.find(p => p.id === product?.id);
 
   const handleCartQuantityChange = (id, newQty) => {
     setCart(prev =>
@@ -137,44 +152,52 @@ const ProductDetailsPage = () => {
     );
   }
 
+  const isInWishlist = wishlist.some(p => p.id === product?.id);
+
   return (
     <div>
       {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-        <div className="container-fluid">
-          <a className="navbar-brand fw-bold text-success d-flex align-items-center" href="#top">
-            <i className="bi bi-leaf-fill me-2 text-success"></i>EveShop
-          </a>
-          <div className="d-flex align-items-center ms-auto">
-            <button
-              className="btn btn-outline-success position-relative me-2"
-              onClick={() => setShowCart(true)}
-            >
-              <i className="bi bi-cart3"></i> Cart
-              {cart.length > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  {cart.length}
-                </span>
-              )}
-            </button>
-            <button
-              className="btn btn-outline-warning position-relative me-2"
-              onClick={() => setShowWishlist(true)}
-            >
-              <i className={`bi ${isInWishlist ? "bi-heart-fill" : "bi-heart"}`}></i> Wishlist
-            </button>
-            <button
-              className="btn btn-outline-danger"
-              onClick={() => {
-                localStorage.removeItem("phone");
-                navigate("/");
-              }}
-            >
-              <i className="bi bi-box-arrow-right"></i> Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+     <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+  <div className="container-fluid">
+    <a className="navbar-brand fw-bold text-success d-flex align-items-center" href="#top">
+      <i className="bi bi-leaf-fill me-2 text-success"></i>EveShop
+    </a>
+    <div className="d-flex align-items-center ms-auto">
+      <button
+        className="btn btn-outline-success position-relative me-2"
+        onClick={() => setShowCart(true)}
+      >
+        <i className="bi bi-cart3"></i> Cart
+        {cart.length > 0 && (
+          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            {cart.length}
+          </span>
+        )}
+      </button>
+      <button
+        className="btn btn-outline-warning position-relative me-2"
+        onClick={() => setShowWishlist(true)}
+      >
+        <i className={`bi ${isInWishlist ? "bi-heart-fill" : "bi-heart"}`}></i> Wishlist
+        {wishlist.length > 0 && (
+          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            {wishlist.length}
+          </span>
+        )}
+      </button>
+      <button
+        className="btn btn-outline-danger"
+        onClick={() => {
+          localStorage.removeItem("phone");
+          navigate("/");
+        }}
+      >
+        <i className="bi bi-box-arrow-right"></i> Logout
+      </button>
+    </div>
+  </div>
+</nav>
+
 
       {/* Toast */}
       {showToast && (
@@ -188,56 +211,47 @@ const ProductDetailsPage = () => {
 
       {/* Wishlist Modal */}
       {showWishlist && (
-        <div
-          className="modal fade show d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-        >
+        <div className="modal fade show d-block" tabIndex="-1">
           <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg">
-              <div className="modal-header bg-warning text-white">
+            <div className="modal-content rounded-4 shadow-sm">
+              <div className="modal-header">
                 <h5 className="modal-title">Your Wishlist</h5>
-                <button type="button" className="btn-close" onClick={() => setShowWishlist(false)}></button>
+                <button type="button" className="btn-close" onClick={() => setShowWishlist(false)} />
               </div>
-              <div className="modal-body">
+
+              <div className="modal-body" style={{ minHeight: "220px" }}>
                 {wishlist.length === 0 ? (
-                  <p>Your wishlist is empty.</p>
+                  <div className="text-center py-5 text-muted">Your wishlist is empty.</div>
                 ) : (
                   <ul className="list-group">
                     {wishlist.map(item => (
-                      <li
-                        key={item.id}
-                        className="list-group-item d-flex justify-content-between align-items-center"
-                      >
-                        <div className="d-flex align-items-center gap-2 flex-grow-1">
-                          <span>{item.name}</span>
-                          <button
-                            className="btn btn-sm btn-outline-danger ms-2"
-                            onClick={() =>
-                              setWishlist(prev => prev.filter(p => p.id !== item.id))
-                            }
-                          >
-                            Remove
+                      <li key={item.id} className="list-group-item d-flex align-items-center gap-3">
+                        <img src={item.image} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
+                        <div className="flex-grow-1">
+                          <div className="d-flex justify-content-between align-items-start">
+                            <div>
+                              <div className="fw-semibold">{item.name}</div>
+                              <small className="text-muted">Ksh {item.price.toLocaleString()}</small>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <button className="btn btn-sm btn-success" onClick={() => addItemToCart(item)}>
+                            <i className="bi bi-cart-plus me-1"></i> Add to Cart
+                          </button>
+                          <button className="btn btn-sm btn-outline-danger" onClick={() => toggleWishlistItem(item)}>
+                            <i className="bi bi-trash"></i> Remove
                           </button>
                         </div>
-                        <span className="fw-bold">
-                          Ksh {item.price.toLocaleString()}
-                        </span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-              {wishlist.length > 0 && (
-                <div className="modal-footer">
-                  <button
-                    className="btn btn-outline-secondary"
-                    onClick={() => setShowWishlist(false)}
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
+
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowWishlist(false)}>Close</button>
+              </div>
             </div>
           </div>
         </div>
@@ -285,21 +299,14 @@ const ProductDetailsPage = () => {
                 ) : (
                   <ul className="list-group">
                     {cart.map(item => (
-                      <li
-                        key={item.id}
-                        className="list-group-item d-flex justify-content-between align-items-center"
-                      >
+                      <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
                         <div className="d-flex align-items-center gap-2 flex-grow-1">
                           <span>{item.name}</span>
                           <div className="d-flex gap-1 align-items-center ms-3">
                             <button
                               className="btn btn-sm btn-outline-secondary p-1"
-                              style={{ minWidth: "25px" }}
                               onClick={() =>
-                                handleCartQuantityChange(
-                                  item.id,
-                                  Math.max(1, item.quantity - 1)
-                                )
+                                handleCartQuantityChange(item.id, Math.max(1, item.quantity - 1))
                               }
                             >
                               -
@@ -311,20 +318,13 @@ const ProductDetailsPage = () => {
                               value={item.quantity}
                               min={1}
                               onChange={e =>
-                                handleCartQuantityChange(
-                                  item.id,
-                                  Math.max(1, Number(e.target.value))
-                                )
+                                handleCartQuantityChange(item.id, Math.max(1, Number(e.target.value)))
                               }
                             />
                             <button
                               className="btn btn-sm btn-outline-secondary p-1"
-                              style={{ minWidth: "25px" }}
                               onClick={() =>
-                                handleCartQuantityChange(
-                                  item.id,
-                                  item.quantity + 1
-                                )
+                                handleCartQuantityChange(item.id, item.quantity + 1)
                               }
                             >
                               +
@@ -350,21 +350,13 @@ const ProductDetailsPage = () => {
                   <div className="me-auto">
                     <h6 className="mb-0">
                       Grand Total:{" "}
-                      <span className="fw-bold">
-                        Ksh {grandTotal.toLocaleString()}
-                      </span>
+                      <span className="fw-bold">Ksh {grandTotal.toLocaleString()}</span>
                     </h6>
                   </div>
-                  <button
-                    className="btn btn-outline-secondary"
-                    onClick={() => setShowCart(false)}
-                  >
+                  <button className="btn btn-outline-secondary" onClick={() => setShowCart(false)}>
                     Close
                   </button>
-                  <button
-                    className="btn btn-success"
-                    onClick={() => setCheckoutMode(true)}
-                  >
+                  <button className="btn btn-success" onClick={() => setCheckoutMode(true)}>
                     <i className="bi bi-credit-card-2-front me-2"></i> Checkout
                   </button>
                 </div>
@@ -386,21 +378,13 @@ const ProductDetailsPage = () => {
                 src={product.image}
                 alt={product.name}
                 className="img-fluid w-100"
-                style={{
-                  maxHeight: "240px",
-                  objectFit: "contain",
-                  transition: "transform 0.25s ease",
-                }}
-                onMouseOver={e =>
-                  (e.currentTarget.style.transform = "scale(1.05)")
-                }
-                onMouseOut={e =>
-                  (e.currentTarget.style.transform = "scale(1)")
-                }
+                style={{ maxHeight: "240px", objectFit: "contain", transition: "transform 0.25s ease" }}
+                onMouseOver={e => (e.currentTarget.style.transform = "scale(1.05)")}
+                onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}
               />
               <button
                 className="btn btn-sm btn-outline-warning position-absolute top-0 end-0 m-2"
-                onClick={handleWishlist}
+                onClick={toggleProductWishlist}
               >
                 <i className={`bi ${isInWishlist ? "bi-heart-fill" : "bi-heart"}`}></i>
               </button>
@@ -412,9 +396,7 @@ const ProductDetailsPage = () => {
               {[...Array(5)].map((_, i) => (
                 <i
                   key={i}
-                  className={`bi bi-star-fill ${
-                    i < product.rating ? "text-warning" : "text-muted"
-                  }`}
+                  className={`bi bi-star-fill ${i < product.rating ? "text-warning" : "text-muted"}`}
                 ></i>
               ))}
             </div>
@@ -424,28 +406,16 @@ const ProductDetailsPage = () => {
             <p className="text-muted">{product.description}</p>
 
             <div className="d-flex align-items-center mb-3 gap-2">
-              <button
-                className="btn btn-sm btn-outline-secondary p-1"
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-              >
-                -
-              </button>
+              <button className="btn btn-sm btn-outline-secondary p-1" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</button>
               <input
                 type="number"
                 className="form-control form-control-sm text-center"
                 style={{ width: 60 }}
                 value={quantity}
                 min={1}
-                onChange={e =>
-                  setQuantity(Math.max(1, Number(e.target.value)))
-                }
+                onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
               />
-              <button
-                className="btn btn-sm btn-outline-secondary p-1"
-                onClick={() => setQuantity(q => q + 1)}
-              >
-                +
-              </button>
+              <button className="btn btn-sm btn-outline-secondary p-1" onClick={() => setQuantity(q => q + 1)}>+</button>
             </div>
 
             <p className="fw-bold mb-3">

@@ -21,6 +21,9 @@ import ForgotPassword from './Components/ForgotPassword';
 import ResetPassword from './Components/ResetPassword';
 import OTPPage from './Components/OTPPage';
 import WishlistPage from './Components/WishlistPage';
+import CheckoutSummary from './Components/CheckoutSummary';
+import DeliveryAddress from './Components/DeliveryAddress';
+import AddressPage from './Components/AddressPage';
 const CategoryForm = lazy(() => import('./Components/Category/CategoryForm'));
 
 // function App() { 
@@ -51,6 +54,7 @@ const App = () => {
        {/* <NavBar /> */}
          <Suspense fallback={<div className="container">Loading...</div>}>
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/register" element={<RegisterForm />} />
         <Route path="/category" element={<CategoryForm />} />
         <Route path="/categories/:id" element={<CategoryDetails />} />
@@ -58,10 +62,14 @@ const App = () => {
         <Route path="/products" element={<CatalogueForm />} />
         <Route path="/product/:id" element={<ProductDetailsPage />} />
         <Route path="/admin" element={<AdminPage />} />
-         <Route path="/forgotpass" element={<ForgotPassword />} />
-         <Route path="/resetpass" element={<ResetPassword />} />
-          <Route path="/otp" element={<OTPPage />} />
-           <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/forgotpass" element={<ForgotPassword />} />
+        <Route path="/resetpass" element={<ResetPassword />} />
+        <Route path="/otp" element={<OTPPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/checkout" element={<CheckoutSummary />} />
+        <Route path="/delivery-address" element={<DeliveryAddress />} />
+        <Route path="/address" element={<AddressPage />} />
+
 
        
       </Routes>
@@ -69,4 +77,11 @@ const App = () => {
     </>
   );
 };
+
+const Home = () => (
+  <div className="container py-5 text-center">
+    <h1>Welcome to EveShop</h1>
+    <a href="/checkout" className="btn btn-success mt-3">Go to Checkout</a>
+  </div>
+);
 export default App;
