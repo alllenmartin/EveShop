@@ -33,6 +33,46 @@ const Toast = ({ message, duration = 3000, onDone }) => {
   );
 };
 
+
+
+//Handle Login
+
+const redirectToLoginWithToast = () => {
+  // Create toast
+  const toastEl = document.createElement("div");
+  toastEl.className = "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
+  toastEl.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>You'll be redirected to login.`;
+  toastEl.style.zIndex = 1055;
+  toastEl.style.minWidth = "220px";
+  toastEl.style.opacity = "0";
+  toastEl.style.transform = "translateY(-60px)";
+  toastEl.style.transition = "opacity 0.8s ease, transform 0.8s cubic-bezier(.68,-0.55,.27,1.55)";
+  document.body.appendChild(toastEl);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    toastEl.style.opacity = "1";
+    toastEl.style.transform = "translateY(0)";
+  });
+
+  // Keep visible 3s then fade out
+  setTimeout(() => {
+    toastEl.style.opacity = "0";
+    toastEl.style.transform = "translateY(-60px)";
+    setTimeout(() => {
+      document.body.removeChild(toastEl);
+
+      // Fade out current page and navigate to login
+      document.body.style.transition = "opacity 0.6s ease";
+      document.body.style.opacity = 0;
+      setTimeout(() => {
+       window.location.href = "/login";
+      }, 600);
+    }, 800); // matches transition
+  }, 3000);
+};
+
+
 const CataloguePage = () => {
   // Products & categories
   const [products, setProducts] = useState([]);
@@ -54,7 +94,8 @@ const CataloguePage = () => {
 
   // Auth / checkout
   const [checkoutMode, setCheckoutMode] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  //const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // default true for testing
   const [userPhone, setUserPhone] = useState("254703622386"); // default
 
   // Cart
@@ -108,6 +149,7 @@ const CataloguePage = () => {
       })
       .catch(err => console.error(err));
   }, []);
+  
 
   // Persist UI state
   useEffect(() => { localStorage.setItem("category", selectedCategory); }, [selectedCategory]);
@@ -149,6 +191,65 @@ const CataloguePage = () => {
   const grandTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
 
+  // Handle Checkout
+const handleCheckoutRedirect = (e) => {
+  const target = isLoggedIn ? "/checkout" : "/login";
+
+  if (!isLoggedIn) {
+    // Show toast
+    const toastEl = document.createElement("div");
+    toastEl.className =
+      "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
+    toastEl.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>Please log in first`;
+    toastEl.style.zIndex = 1055;
+    toastEl.style.minWidth = "220px";
+    toastEl.style.opacity = "0";
+    toastEl.style.transform = "translateY(-60px)";
+    toastEl.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+    document.body.appendChild(toastEl);
+
+    requestAnimationFrame(() => {
+      toastEl.style.opacity = "1";
+      toastEl.style.transform = "translateY(0)";
+    });
+
+    setTimeout(() => {
+      toastEl.style.opacity = "0";
+      toastEl.style.transform = "translateY(-20px)";
+
+      setTimeout(() => {
+        document.body.removeChild(toastEl);
+
+        // Fade out page
+        document.body.style.transition = "opacity 0.6s ease";
+        document.body.style.opacity = 0;
+
+        // Redirect
+        setTimeout(() => {
+          window.location.href = target;
+        }, 600);
+      }, 500);
+    }, 2500);
+
+    return; // stop further execution
+  }
+
+  // Save checkout data
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  localStorage.setItem("checkoutData", JSON.stringify({ cart, subtotal }));
+
+  // Animate button
+  e.currentTarget.style.transform = "scale(1.1)";
+  e.currentTarget.style.opacity = "0.7";
+
+  // Fade out page and redirect
+  document.body.style.transition = "opacity 0.6s ease";
+  document.body.style.opacity = 0;
+  setTimeout(() => {
+    window.location.href = target;
+  }, 600);
+};
+ //End
   
 
   // Cart manipulation functions
@@ -258,33 +359,134 @@ const CataloguePage = () => {
           </form>
 
           <div className="d-flex align-items-center">
-            <button className="btn btn-outline-success position-relative me-2" onClick={() => { setShowCart(true); setCheckoutMode(false); }}>
-              <i className="bi bi-cart3"></i> Cart
-              {cart.length > 0 && <span className="position-absolute top-0 start-100 translate-middle badge bg-danger">{cart.length}</span>}
+           <button
+              className="btn btn-outline-success position-relative me-2 p-1"
+              onClick={() => { setShowCart(true); setCheckoutMode(false); }}
+              style={{ fontSize: "1rem", width: "38px", height: "38px" }}
+              title="Cart"
+            >
+              <i className="bi bi-cart3"></i>
+              {cart.length > 0 && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge bg-danger rounded-pill"
+                  style={{
+                    fontSize: "0.7rem",
+                    minWidth: "18px",
+                    height: "18px",
+                    lineHeight: "18px",
+                    padding: "0 4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  {cart.length}
+                </span>
+              )}
             </button>
 
-                <button 
-        className="btn btn-outline-warning rounded-pill position-relative me-2 px-3"
-        onClick={() => setShowWishlist(true)}
-      >
-        <i className="bi bi-heart me-1"></i> Wishlist
-        {wishlist.length > 0 && (
-          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-            {wishlist.length}
-          </span>
-        )}
-      </button>
 
 
-            {!isLoggedIn ? (
-              <button className="btn btn-outline-success rounded-pill" onClick={() => setIsLoggedIn(true)}>
-                <i className="bi bi-box-arrow-in-right me-1"></i> Login
-              </button>
-            ) : (
-              <button className="btn btn-outline-danger rounded-pill" onClick={() => setIsLoggedIn(false)}>
-                <i className="bi bi-box-arrow-right me-1"></i> Logout
-              </button>
-            )}
+
+            <button
+              className="btn btn-outline-warning position-relative me-2 p-1"
+              onClick={() => setShowWishlist(true)}
+              style={{ fontSize: "1rem", width: "38px", height: "38px" }}
+              title="Wishlist"
+            >
+              <i className="bi bi-heart"></i>
+              {wishlist.length > 0 && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge bg-danger rounded-pill"
+                  style={{
+                    fontSize: "0.65rem",
+                    minWidth: "18px",
+                    height: "18px",
+                    lineHeight: "18px",
+                    padding: "0 4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {wishlist.length > 99 ? "99+" : wishlist.length}
+                </span>
+              )}
+            </button>
+
+
+
+
+     {/* Login / User Dropdown */}
+
+                    {!isLoggedIn ? (
+                      <button
+                        className="btn btn-outline-success position-relative me-3 p-1"
+                        style={{ width: "38px", height: "38px", fontSize: "1rem" }}
+                        onClick={redirectToLoginWithToast}
+                        title="Login"
+                      >
+                        <i className="bi bi-box-arrow-in-right"></i>
+                      </button>
+                    ) : (
+                      <div className="dropdown me-3" style={{ position: "relative" }}>
+                        <button
+                          className="btn btn-outline-success position-relative p-1 dropdown-toggle"
+                          style={{
+                            width: "38px",
+                            height: "38px",
+                            fontSize: "1.1rem",
+                            borderRadius: "50%",   // make it a circle
+                            padding: "0",           // remove extra padding
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#28a745"        // green icon color
+                          }}
+                          type="button"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="User Menu"
+                        >
+                          <i className="bi bi-person-circle"></i>
+                        </button>
+
+                        <ul
+                          className="dropdown-menu py-1 shadow-sm"
+                          style={{
+                            minWidth: "140px",
+                            right: 0,
+                            left: "auto",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <li>
+                            <a className="dropdown-item py-1" href="/account">
+                              <i className="bi bi-person me-2"></i> My Account
+                            </a>
+                          </li>
+                          <li>
+                            <a className="dropdown-item py-1" href="/orders">
+                              <i className="bi bi-card-list me-2"></i> My Orders
+                            </a>
+                          </li>
+                          <li><hr className="dropdown-divider my-1" /></li>
+                          <li>
+                            <button
+                              className="dropdown-item py-1 text-success"
+                              onClick={() => setIsLoggedIn(false)}
+                            >
+                              <i className="bi bi-box-arrow-right me-2"></i> Logout
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+
+
           </div>
         </div>
       </nav>
@@ -432,22 +634,30 @@ const CataloguePage = () => {
               </div>
 
               {!checkoutMode && (
-                <div className="modal-footer">
-                  <div className="me-auto">
-                    <h6 className="mb-0">Grand Total: <span className="fw-bold">Ksh {grandTotal.toLocaleString()}</span></h6>
-                  </div>
-
-                  <button className="btn btn-outline-secondary" onClick={() => setShowCart(false)}>Close</button>
-
-                  {cart.length > 0 && (
-                    <div className="d-flex gap-2">
-                      <button className="btn btn-success" onClick={() => setCheckoutMode(true)}>
-                        <i className="bi bi-credit-card-2-front me-2"></i> Checkout
-                      </button>
-                    </div>
-                  )}
+              <div className="modal-footer">
+                <div className="me-auto">
+                  <h6 className="mb-0">
+                    Grand Total: <span className="fw-bold">Ksh {grandTotal.toLocaleString()}</span>
+                  </h6>
                 </div>
-              )}
+
+                <button className="btn btn-outline-secondary" onClick={() => setShowCart(false)}>
+                  Close
+                </button>
+
+                {cart.length > 0 && (
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-success"
+                      style={{ transition: "transform 0.3s ease, opacity 0.3s ease" }}
+                      onClick={handleCheckoutRedirect}
+                    >
+                      <i className="bi bi-credit-card-2-front me-2"></i> Checkout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           </div>
         </div>
