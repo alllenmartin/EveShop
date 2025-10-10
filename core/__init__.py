@@ -32,6 +32,7 @@ def create_app(config_mode=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    mail.init_app(app)
 
     # Register blueprints or routes here if needed
     # from .routes import main as main_blueprint

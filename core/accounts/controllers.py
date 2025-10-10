@@ -1,63 +1,105 @@
-from marshmallow import ValidationError
-from flask import Blueprint
-from flask import request, jsonify,url_for
-from sqlalchemy.exc import IntegrityError
-import psycopg2
-from core import db
-# from core.notifications.mail_utils import generate_token, send_verification_email
-from .models import User,UserSchema
-
+from datetime import datetime, timedelta, timezone
+from flask import Blueprint, request, jsonify, current_app
+from flask_mail import Message
+from core import db, mail
+from .models import User, UserSchema
+import secrets
+import re
 
 user_schema = UserSchema()
 accounts_bp = Blueprint("accounts", __name__)
 
+# Utility: Generate OTP
+def generate_otp(length=4):
+    """Generate a cryptographically secure numeric OTP."""
+    digits = "0123456789"
+    return ''.join(secrets.choice(digits) for _ in range(length))
+
+# List all users
 def list_all_user_controller():
-    user = User.query.all()
-    return jsonify([c.to_dict() for c in user])
+    users = User.query.all()
+    return jsonify([u.to_dict() for u in users])
 
-
+# Create new user
+# @accounts_bp.route("/register", methods=["POST"])
 def create_user_controller():
-    try:
-       request_form = request.form.to_dict()       
-       try:
-          data = user_schema.load(request_form)
-       except ValidationError as err:
-         return jsonify(err.messages), 400
+    data = request.get_json() or request.form.to_dict()
 
-  
-       new_account = User(**data)
-       db.session.add(new_account)
-       db.session.commit()
-       
-        # Generate token & send email - To be continued
-    #    token = generate_token(new_account.email)
-    #    verify_url = url_for("verify_email", token=token, _external=True)
-    #    send_verification_email(new_account.email, verify_url)
+    full_name = data.get("full_name")
+    email_or_phone = data.get("email_or_phone")
+    password = data.get("password")
 
-    except IntegrityError as e:
-        db.session.rollback()
-        if isinstance(e.orig, psycopg2.errors.UniqueViolation):
-            return jsonify({
-                "error": f"Category with the name '{request_form['username']}' already exists."
-            }), 400
-        return jsonify({"error": str(e)}), 500
-    
-        # Other Role Backs
-    
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+    if not all([full_name, email_or_phone, password]):
+        return jsonify({"error": "All fields are required"}), 400
 
- 
+    if User.query.filter_by(email_or_phone=email_or_phone).first():
+        return jsonify({"error": "User already exists"}), 400
 
-    return jsonify({
-    "success": True,
-    "message": "Product created successfully!",
-    "data": {
-        "id": new_account.id,
-        "name": new_account.username,
-        "token": new_account.secret_token,
-         "created at": new_account.created_at
-     }
-      })
-    
+    # Create user object
+    user = User(full_name=full_name, email_or_phone=email_or_phone,password=password)
+   
+
+    # Generate OTP
+    user.otp = generate_otp()
+    user.otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+    user.is_verified = False
+
+    db.session.add(user)
+    db.session.commit()
+
+    # Send OTP
+    if re.match(r"[^@]+@[^@]+\.[^@]+", email_or_phone):
+        msg = Message(
+            "Your OTP Code",
+            sender=current_app.config["MAIL_USERNAME"],
+            recipients=[email_or_phone]
+        )
+        msg.body = f"Your OTP is {user.otp}. It will expire in 5 minutes."
+        mail.send(msg)
+    else:
+        # For phone numbers: you can integrate SMS here
+        print(f"📱 OTP for {email_or_phone}: {user.otp}")
+
+    return jsonify({"message": "User registered. OTP sent."}), 201
+
+
+# @accounts_bp.route("/register", methods=["POST"])
+def verify_otp():
+    data = request.get_json() or request.form.to_dict()
+    email_or_phone = data.get("email_or_phone")
+    otp = data.get("otp")
+
+    user = User.query.filter_by(email_or_phone=email_or_phone).first()
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if user.is_verified:
+        return jsonify({"message": "User already verified"}), 200
+
+    if user.otp != otp:
+        return jsonify({"error": "Invalid OTP"}), 400
+
+    if datetime.now(timezone.utc) > user.otp_expiry:
+        return jsonify({"error": "OTP expired"}), 400
+
+    user.is_verified = True
+    user.otp = None
+    db.session.commit()
+
+    return jsonify({"message": "Verification successful"}), 200
+
+def login_user():
+    data = request.get_json() or request.form.to_dict()
+    email_or_phone = data.get("email_or_phone")
+    password = data.get("password")
+
+    user = User.query.filter_by(email_or_phone=email_or_phone).first()
+
+    if not user or not user.check_password(password):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    if not user.is_verified:
+        return jsonify({"error": "Account not verified. Please verify OTP first."}), 403
+
+    return jsonify({"message": f"Welcome {user.full_name}!"}), 200

@@ -3,6 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { useNavigate } from "react-router-dom";
 import leafLogo from "../assets/leaf.png";
+import { verifyOTP, resendOTP } from "../api";
 
 const theme = {
   primary: "#4caf50",
@@ -16,36 +17,48 @@ const OTPPage = () => {
   const navigate = useNavigate();
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState({ text: "", type: "" }); // {text, type: "success" | "error"}
   const [fadeIn, setFadeIn] = useState(false);
   const [shake, setShake] = useState(false);
   const [glow, setGlow] = useState(false);
 
-  // Resend OTP state
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [emailOrPhone, setEmailOrPhone] = useState("");
 
+  // Fade-in animation
   useEffect(() => {
     const timer = setTimeout(() => setFadeIn(true), 50);
     return () => clearTimeout(timer);
   }, []);
 
+  // Shake animation for errors
   useEffect(() => {
-    if (error) {
+    if (message.type === "error") {
       setShake(true);
       const timer = setTimeout(() => setShake(false), 500);
       return () => clearTimeout(timer);
     }
-  }, [error]);
+  }, [message]);
 
+  // Glow animation for success
   useEffect(() => {
-    if (success) {
+    if (message.type === "success") {
       setGlow(true);
       const timer = setTimeout(() => setGlow(false), 1000);
       return () => clearTimeout(timer);
     }
-  }, [success]);
+  }, [message]);
+
+  // Load email/phone from localStorage
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("otp_target");
+    if (savedEmail) {
+      setEmailOrPhone(savedEmail);
+    } else {
+      setMessage({ text: "No user to verify. Please register first.", type: "error" });
+    }
+  }, []);
 
   // Countdown for resend OTP
   useEffect(() => {
@@ -63,43 +76,44 @@ const OTPPage = () => {
     newOtp[index] = value;
     setOtp(newOtp);
 
+    // move focus to next input
     if (value && index < otp.length - 1) {
-      document.getElementById(`otp-${index + 1}`).focus();
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+
+    // auto-submit when all digits are entered
+    if (newOtp.every(d => d !== "")) {
+      submitOTP(newOtp.join(""));
     }
   };
 
   const handleBackspace = (e, index) => {
     if (e.key === "Backspace" && otp[index] === "" && index > 0) {
-      document.getElementById(`otp-${index - 1}`).focus();
+      document.getElementById(`otp-${index - 1}`)?.focus();
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const otpValue = otp.join("");
-    if (otpValue.length !== 4) {
-      setError("Please enter the 4-digit OTP");
-      return;
-    }
-
+  const submitOTP = async (otpValue) => {
+    if (loading) return;
     setLoading(true);
-    setError(""); 
-    setSuccess("");
+    setMessage({ text: "", type: "" });
 
     try {
-      const res = await fetch("http://localhost:5000/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp: otpValue }),
-      });
+      const data = await verifyOTP({ otp: otpValue, email_or_phone: emailOrPhone });
 
-      if (!res.ok) throw new Error("Invalid OTP");
-      await res.json();
-
-      setSuccess("OTP verified successfully!");
-      setTimeout(() => navigate("/login"), 1000);
+      // Treat message containing "success" as successful verification
+      if (data.message && data.message.toLowerCase().includes("success")) {
+        setMessage({ text: data.message, type: "success" });
+        setTimeout(() => navigate("/login"), 1000);
+      } else {
+        setMessage({ text: data.message || "Invalid OTP", type: "error" });
+        setOtp(["", "", "", ""]);
+        document.getElementById("otp-0")?.focus();
+      }
     } catch (err) {
-      setError(err.message || "Verification failed");
+      setMessage({ text: err.message || "Network or server error", type: "error" });
+      setOtp(["", "", "", ""]);
+      document.getElementById("otp-0")?.focus();
     } finally {
       setLoading(false);
     }
@@ -109,19 +123,12 @@ const OTPPage = () => {
     if (!canResend) return;
 
     try {
-      const res = await fetch("http://localhost:5000/resend-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!res.ok) throw new Error("Failed to resend OTP");
-      await res.json();
-
-      setSuccess("A new OTP has been sent!");
+      const data = await resendOTP();
+      setMessage({ text: data.message || "A new OTP has been sent!", type: "success" });
       setResendTimer(30);
       setCanResend(false);
     } catch (err) {
-      setError(err.message || "Failed to resend OTP");
+      setMessage({ text: err.message || "Failed to resend OTP", type: "error" });
     }
   };
 
@@ -137,31 +144,37 @@ const OTPPage = () => {
           <p className="small text-muted">Enter the 4-digit code sent to your email</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className={`d-flex justify-content-between mb-3 ${shake ? "shake" : ""} ${glow ? "glow" : ""}`}>
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                id={`otp-${index}`}
-                type="text"
-                maxLength="1"
-                value={digit}
-                onChange={(e) => handleChange(e, index)}
-                onKeyDown={(e) => handleBackspace(e, index)}
-                className="form-control form-control-sm text-center border-success"
-                style={{ width: "3rem", fontSize: "1.5rem", margin: "0 0.25rem" }}
-              />
-            ))}
-          </div>
+        <div className={`d-flex justify-content-between mb-3 ${shake ? "shake" : ""} ${glow ? "glow" : ""}`}>
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              id={`otp-${index}`}
+              type="text"
+              maxLength="1"
+              value={digit}
+              onChange={(e) => handleChange(e, index)}
+              onKeyDown={(e) => handleBackspace(e, index)}
+              className="form-control form-control-sm text-center border-success"
+              style={{ width: "3rem", fontSize: "1.5rem", margin: "0 0.25rem" }}
+              disabled={loading}
+            />
+          ))}
+        </div>
 
-          <button type="submit" className="btn btn-success btn-sm w-100 mb-2">
-            {loading && <span className="spinner-border spinner-border-sm me-2"></span>}
-            {loading ? "Verifying..." : "Verify OTP"}
-          </button>
-        </form>
+        <button className="btn btn-success btn-sm w-100 mb-2" disabled={loading}>
+          {loading ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2"></span>
+              Processing...
+            </>
+          ) : "Verify OTP"}
+        </button>
 
-        {error && <p className="text-danger mt-1 small">{error}</p>}
-        {success && <p className="text-success mt-1 small">{success}</p>}
+        {message.text && (
+          <p className={message.type === "success" ? "text-success mt-1 small" : "text-danger mt-1 small"}>
+            {message.text}
+          </p>
+        )}
 
         <div className="mt-2 text-center">
           <button

@@ -1,8 +1,9 @@
 
+from time import timezone
 from core import db,bcrypt,mail
 from flask_login import UserMixin
 from sqlalchemy import inspect
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import pyotp
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,24 +14,32 @@ class User(db.Model, UserMixin):
     __tablename__ = "users"
     
     id = db.Column(UUID(as_uuid=True),nullable=False, primary_key=True,default=uuid.uuid4)
-    username = db.Column(db.String, unique=True, nullable=False)
-    password = db.Column(db.String, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email_or_phone = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    otp = db.Column(db.String(6))
+    otp_expiry =  db.Column(db.DateTime(timezone=True))
+    is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, nullable=False)
-    verified= db.Column(db.Boolean, default=False)
-    is_two_factor_authentication_enabled = db.Column(
-        db.Boolean, nullable=False, default=False)
-    secret_token = db.Column(db.String, unique=True)
+    
+    
+        
+    
 
-    def __init__(self,password,email):
-        # self.username = username
-        self.password = bcrypt.generate_password_hash(password)
-        self.email = email
-        # self.phone=phone
-        self.created_at = datetime.now()
-        self.secret_token = pyotp.random_base32()
+    def set_password(self,password):
+        self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+   
 
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password_hash, password)
+    
+    def __init__(self, full_name, email_or_phone, password):
+       self.full_name = full_name
+       self.email_or_phone = email_or_phone
+       self.set_password(password)
+       self.created_at = datetime.now(timezone.utc)
+
+    
     def get_authentication_setup_uri(self):
         return pyotp.totp.TOTP(self.secret_token).provisioning_uri(
             name=self.username, issuer_name='EVESHOP')
@@ -45,11 +54,11 @@ class User(db.Model, UserMixin):
     def to_dict(self):
         return {
             'id': self.id,
-            'name': self.username,
+            'name': self.full_name,
             'email': self.email,
-            'mobile': self.phone,
+            'mobile': self.email_or_phone,
             'created_at':self.created_at,
-            'token':self.secret_token
+          
             
         }
         

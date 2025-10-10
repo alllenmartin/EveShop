@@ -91,3 +91,78 @@ export const deleteCategory = async (id) => {
   const res = await axios.delete(`${API_BASE}/categories/${id}`);
   return res.data;
 };
+
+export const registerUser = async ({ full_name, email_or_phone, password }) => {
+  const payload = { full_name, email_or_phone, password };
+
+  const res = await fetch("http://127.0.0.1:5000/accounts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json();
+    throw new Error(errData.error || "Registration failed");
+  }
+
+  return await res.json();
+};
+
+// api.js
+export const verifyOTP = async ({ otp, email_or_phone }) => {
+  const res = await fetch("http://127.0.0.1:5000/otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ otp, email_or_phone }),
+  });
+
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("Invalid server response");
+  }
+
+  if (!res.ok) {
+    throw new Error(data.error || "OTP verification failed");
+  }
+
+  // return raw data for frontend to decide success/error
+  return data;
+};
+
+
+export const resendOTP = async () => {
+  const res = await fetch("http://127.0.0.1:5000/resend-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || "Failed to resend OTP");
+  }
+  return await res.json();
+};
+
+// api.js
+
+export const loginUser = async ({ email, password, remember }) => {
+  const res = await fetch("http://127.0.0.1:5000/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email_or_phone: email, // transform email -> email_or_phone
+      password,
+      remember, // optional, backend can ignore if not needed
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || "Login failed");
+  }
+
+  return await res.json();
+};

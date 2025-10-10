@@ -24,6 +24,7 @@ import WishlistPage from './Components/WishlistPage';
 import CheckoutSummary from './Components/CheckoutSummary';
 import DeliveryAddress from './Components/DeliveryAddress';
 import AddressPage from './Components/AddressPage';
+import OrdersPage from './Components/OrdersPage';
 const CategoryForm = lazy(() => import('./Components/Category/CategoryForm'));
 
 // function App() { 
@@ -69,6 +70,7 @@ const App = () => {
         <Route path="/checkout" element={<CheckoutSummary />} />
         <Route path="/delivery-address" element={<DeliveryAddress />} />
         <Route path="/address" element={<AddressPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
 
 
        

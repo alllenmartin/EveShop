@@ -3,6 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { Link } from "react-router-dom";
 import leafLogo from "../assets/leaf.png";
+import { registerUser } from "../api"; // import the new function
 
 const theme = {
   primary: "#4caf50",
@@ -61,43 +62,44 @@ const Register = () => {
     }
   }, [error]);
 
+  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(""); setSuccess(""); setLoading(true);
+      const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError(""); setSuccess(""); setLoading(true);
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setLoading(false);
-      return;
-    }
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        setLoading(false);
+        return;
+      }
 
-    try {
-      const res = await fetch("http://localhost:5000/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      try {
+        await registerUser({
+          full_name: formData.name,
+          email_or_phone: formData.email,
+          password: formData.password
+        });
 
-      if (!res.ok) throw new Error("Registration failed");
-      await res.json();
+          // Save email/phone to localStorage for OTP page
+        localStorage.setItem("otp_target", formData.email);
 
-      setSuccess("Registration successful!");
-      setToasts(prev => [...prev, { id: Date.now(), message: "Registration successful!" }]);
-      setFormData({ name: "", email: "", password: "", confirmPassword: "" });
+        setSuccess("Registration successful!");
+        setToasts(prev => [...prev, { id: Date.now(), message: "Registration successful!" }]);
+        setFormData({ name: "", email: "", password: "", confirmPassword: "" });
 
-      setTimeout(() => window.location.href = "/login", 1500);
-    } catch (err) {
-      setError(err.message || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+        setTimeout(() => window.location.href = "/otp", 1500);
+      } catch (err) {
+        setError(err.message || "Registration failed");
+      } finally {
+        setLoading(false);
+      }
+    };
   return (
     <main
       className="d-flex justify-content-center align-items-center vh-100"
