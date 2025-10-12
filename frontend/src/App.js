@@ -25,6 +25,8 @@ import CheckoutSummary from './Components/CheckoutSummary';
 import DeliveryAddress from './Components/DeliveryAddress';
 import AddressPage from './Components/AddressPage';
 import OrdersPage from './Components/OrdersPage';
+import WalletPage from './Components/WalletPage';
+import WalletHistoryPage from './Components/WalletHistoryPage';
 const CategoryForm = lazy(() => import('./Components/Category/CategoryForm'));
 
 // function App() { 
@@ -71,8 +73,8 @@ const App = () => {
         <Route path="/delivery-address" element={<DeliveryAddress />} />
         <Route path="/address" element={<AddressPage />} />
         <Route path="/orders" element={<OrdersPage />} />
-
-
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/history" element={<WalletHistoryPage />} />
        
       </Routes>
       </Suspense>
