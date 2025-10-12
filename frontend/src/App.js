@@ -75,7 +75,7 @@ const App = () => {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/history" element={<WalletHistoryPage />} />
-       
+        <Route path="/resetPass" element={<ResetPassword />} />       
       </Routes>
       </Suspense>
     </>

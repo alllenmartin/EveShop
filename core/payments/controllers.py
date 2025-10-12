@@ -8,7 +8,7 @@ from core import db
 from app import app
 import base64
 import logging
-from .models import MpesaTransaction
+from .models import MpesaTransaction, WalletTransaction
 
 
 # def get_access_token():
@@ -144,3 +144,20 @@ def mpesa_callback():
 
     # Always acknowledge Safaricom
     return jsonify({"ResultCode": 0, "ResultDesc": "Callback received successfully"})
+
+def add_wallet_transaction():
+    request_form = request.form.to_dict()  or request.get_json()
+    
+    if not request_form:
+        return jsonify({"error": "No data provided"}), 400   
+    
+    tx = WalletTransaction(**request_form)
+    db.session.add(tx)
+    db.session.commit()
+    return jsonify({"message": "Transaction added successfully", "transaction": tx.serialize()}), 201
+
+
+def get_transactions(user_id):
+    transactions = WalletTransaction.query.filter_by(user_id=user_id).order_by(WalletTransaction.date.desc()).all()
+    return jsonify([tx.serialize() for tx in transactions])
+   
