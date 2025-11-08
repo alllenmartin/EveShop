@@ -63,7 +63,6 @@ def initiate_stk_push(phone_number, amount, reference):
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {access_token}'
     }
-
     # Generate timestamp
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     shortcode = 174379
