@@ -1,312 +1,443 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
-const AdminPage = () => {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+// Base URL for backend
+const BASE_URL = "http://localhost:5000";
 
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+// Resolve image helper
+const resolveImage = (imgUrl) => {
+  if (!imgUrl) return "https://via.placeholder.com/400x300?text=No+Image";
+  if (imgUrl.startsWith("http")) return imgUrl;
+  if (imgUrl.startsWith("/")) return `${BASE_URL}${imgUrl}`;
+  return `${BASE_URL}/uploads/${imgUrl}`;
+};
 
-  const [categoryName, setCategoryName] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
-
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [editingCategory, setEditingCategory] = useState(null);
-
-  // Pagination for products
-  const [prodPage, setProdPage] = useState(1);
-  const prodPerPage = 6;
-  const prodIndexLast = prodPage * prodPerPage;
-  const prodIndexFirst = prodIndexLast - prodPerPage;
-  const currentProducts = products.slice(prodIndexFirst, prodIndexLast);
-  const totalProdPages = Math.ceil(products.length / prodPerPage);
-
-  // Pagination for categories
-  const [catPage, setCatPage] = useState(1);
-  const catPerPage = 5;
-  const catIndexLast = catPage * catPerPage;
-  const catIndexFirst = catIndexLast - catPerPage;
-  const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(categorySearch.toLowerCase())
-  );
-  const currentCategories = filteredCategories.slice(catIndexFirst, catIndexLast);
-  const totalCatPages = Math.ceil(filteredCategories.length / catPerPage);
-
+// Toast Component
+const Toast = ({ message, duration = 3000, onDone }) => {
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/products");
-      setProducts(res.data);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/categories");
-      setCategories(res.data);
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-    }
-  };
-
-  const resetProductForm = () => {
-    setName("");
-    setPrice("");
-    setDescription("");
-    setCategoryId("");
-    setQuantity(1);
-    setImage(null);
-    setImagePreview(null);
-    setEditingProduct(null);
-  };
-
-  const handleAddOrEditProduct = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("price", price);
-      formData.append("description", description);
-      formData.append("category_id", categoryId);
-      formData.append("quantity", quantity);
-      if (image) formData.append("image", image);
-
-      if (editingProduct) {
-        await axios.put(`http://localhost:5000/products/${editingProduct.id}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      } else {
-        await axios.post("http://localhost:5000/add_product", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      }
-
-      resetProductForm();
-      fetchProducts();
-    } catch (err) {
-      console.error("Error adding/updating product:", err);
-    }
-  };
-
-  const handleEditProduct = (prod) => {
-    setEditingProduct(prod);
-    setName(prod.name);
-    setPrice(prod.price);
-    setDescription(prod.description);
-    setCategoryId(prod.category_id || "");
-    setQuantity(prod.quantity || 1);
-    setImagePreview(prod.image || null);
-  };
-
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-    try {
-      await axios.delete(`http://localhost:5000/products/${id}`);
-      fetchProducts();
-    } catch (err) {
-      console.error("Error deleting product:", err);
-    }
-  };
-
-  const resetCategoryForm = () => { setCategoryName(""); setEditingCategory(null); };
-
-  const handleAddOrEditCategory = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingCategory) {
-        await axios.put(`http://localhost:5000/categories/${editingCategory.id}`, { name: categoryName });
-      } else {
-        await axios.post("http://localhost:5000/add_category", { name: categoryName });
-      }
-      resetCategoryForm();
-      fetchCategories();
-    } catch (err) {
-      console.error("Error adding/updating category:", err);
-    }
-  };
-
-  const handleEditCategory = (cat) => { setEditingCategory(cat); setCategoryName(cat.name); };
-
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
-    try {
-      await axios.delete(`http://localhost:5000/categories/${id}`);
-      fetchCategories();
-    } catch (err) {
-      console.error("Error deleting category:", err);
-    }
-  };
-
-  const getCategoryName = (catId) => {
-    const cat = categories.find(c => c.id === catId);
-    return cat ? cat.name : "N/A";
-  };
+    const timer = setTimeout(() => onDone(), duration);
+    return () => clearTimeout(timer);
+  }, [duration, onDone]);
 
   return (
-    <div className="container my-4">
-      <h2 className="mb-4 text-success">Admin Dashboard</h2>
+    <div
+      className="position-fixed top-0 end-0 m-3 p-3 bg-success text-white shadow-lg rounded-4"
+      style={{ zIndex: 1055, minWidth: "220px", animation: `fadeInOut ${duration}ms forwards` }}
+    >
+      <i className="bi bi-check-circle me-2"></i>
+      {message}
+      <style>{`
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(-20px); }
+          10%, 90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-20px); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
-      <div className="row mb-4">
-        {/* Product Form */}
-        <div className="col-md-6 mb-3">
-          <div className="card p-3 h-100 shadow-sm">
-            <h4 className="text-success">{editingProduct ? "Edit Product" : "Add Product"}</h4>
-            <form onSubmit={handleAddOrEditProduct}>
-              <input type="text" className="form-control mb-2" placeholder="Product Name" value={name} onChange={e => setName(e.target.value)} required />
-              <input type="number" className="form-control mb-2" placeholder="Price" value={price} onChange={e => setPrice(e.target.value)} required />
-              <textarea className="form-control mb-2" placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
-              <select className="form-control mb-2" value={categoryId} onChange={e => setCategoryId(e.target.value)} required>
-                <option value="">Select Category</option>
-                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-              </select>
-              <input type="number" className="form-control mb-2" placeholder="Quantity" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1} />
-              <input type="file" className="form-control mb-2" onChange={e => {
-                const file = e.target.files[0];
-                setImage(file);
-                setImagePreview(file ? URL.createObjectURL(file) : null);
-              }} />
-              {imagePreview && <img src={imagePreview} alt="Preview" className="img-fluid mb-2" style={{ height: "100px", objectFit: "contain" }} />}
-              <button className="btn btn-success w-100">{editingProduct ? "Update Product" : "Add Product"}</button>
-            </form>
-          </div>
-        </div>
+const AdminPage = () => {
+  const [activeMenu, setActiveMenu] = useState("Products");
+  const [toasts, setToasts] = useState([]);
 
-        {/* Category Form */}
-        <div className="col-md-6 mb-3">
-          <div className="card p-3 h-100 shadow-sm">
-            <h4 className="text-success">{editingCategory ? "Edit Category" : "Add Category"}</h4>
-            <form onSubmit={handleAddOrEditCategory} className="mb-2">
-              <input type="text" className="form-control mb-2" placeholder="Category Name" value={categoryName} onChange={e => setCategoryName(e.target.value)} required />
-              <button className="btn btn-success w-100">{editingCategory ? "Update Category" : "Add Category"}</button>
-            </form>
+  // Data states
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [categories, setCategories] = useState([]);
 
-            <input type="text" className="form-control mb-2" placeholder="Search Categories..." value={categorySearch} onChange={e => setCategorySearch(e.target.value)} />
+  // UI States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageFile, setImageFile] = useState(null);
 
-            <ul className="list-group mb-2">
-              {currentCategories.map(cat => (
-                <li key={cat.id} className="list-group-item d-flex justify-content-between align-items-center">
-                  {cat.name}
-                  <div>
-                    <button className="btn btn-sm btn-outline-success me-2" onClick={() => handleEditCategory(cat)}>Edit</button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteCategory(cat.id)}>Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+  // Fetch data
+  useEffect(() => {
+    fetch(`${BASE_URL}/products`).then((res) => res.json()).then(setProducts).catch(console.error);
+    fetch(`${BASE_URL}/orders`).then((res) => res.json()).then(setOrders).catch(console.error);
+    fetch(`${BASE_URL}/users`).then((res) => res.json()).then(setUsers).catch(console.error);
+    fetch(`${BASE_URL}/categories`).then((res) => res.json()).then(setCategories).catch(console.error);
+  }, []);
 
-            {/* Category Pagination */}
-            {totalCatPages > 1 && (
-              <nav>
-                <ul className="pagination justify-content-start">
-                  <li className={`page-item ${catPage === 1 ? "disabled" : ""}`}>
-                    <button className="btn btn-sm btn-outline-success me-1" onClick={() => setCatPage(p => Math.max(1, p - 1))}>Prev</button>
-                  </li>
-                  {Array.from({ length: totalCatPages }, (_, i) => (
-                    <li key={i} className="page-item">
-                      <button
-                        className={`btn btn-sm me-1 ${i + 1 === catPage ? "btn-success text-white" : "btn-outline-success"}`}
-                        onClick={() => setCatPage(i + 1)}
-                      >
-                        {i + 1}
-                      </button>
-                    </li>
-                  ))}
-                  <li className={`page-item ${catPage === totalCatPages ? "disabled" : ""}`}>
-                    <button className="btn btn-sm btn-outline-success" onClick={() => setCatPage(p => Math.min(totalCatPages, p + 1))}>Next</button>
-                  </li>
-                </ul>
-              </nav>
-            )}
-          </div>
-        </div>
-      </div>
+  // Toast
+  const showToast = (message) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message }]);
+  };
 
-      {/* Products Grid */}
-      <h4 className="text-success">Products</h4>
-      <div className="row row-cols-1 row-cols-md-3 g-3 mb-3">
-        {currentProducts.map(prod => (
-          <div key={prod.id} className="col">
-            <div className="card h-100 d-flex flex-column justify-content-between p-2 shadow-sm">
-              {prod.image && (
-                <div style={{ height: "140px", overflow: "hidden", marginBottom: "0.5rem" }}>
-                  <img
-                    src={prod.image}
-                    alt={prod.name}
-                    className="card-img-top product-img"
-                    style={{
-                      height: "100%",
-                      width: "100%",
-                      objectFit: "contain",
-                      transition: "transform 0.3s ease",
-                    }}
-                  />
-                </div>
-              )}
+  // Pagination & search
+  const getPaginated = (data) => {
+    const filtered = data.filter((item) =>
+      Object.values(item).join(" ").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+    const paginated = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    return { paginated, totalPages };
+  };
 
-              <div className="card-body d-flex flex-column justify-content-between">
-                <div>
-                  <h6 className="card-title">{prod.name}</h6>
-                  <p className="card-text mb-1">${prod.price}</p>
-                  <small className="text-muted">Category: {getCategoryName(prod.category_id)}</small>
-                  <br />
-                  <small className="text-truncate d-block" style={{ maxHeight: "3em", overflow: "hidden" }}>{prod.description}</small>
-                  <br />
-                  <small className="text-muted">Quantity: {prod.quantity}</small>
-                </div>
-                <div className="mt-2">
-                  <button className="btn btn-sm btn-outline-success me-2" onClick={() => handleEditProduct(prod)}>Edit</button>
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteProduct(prod.id)}>Delete</button>
-                </div>
-              </div>
-            </div>
+  // const handleDelete = (id) => {
+  //   if (activeMenu === "Products") setProducts((prev) => prev.filter((p) => p.id !== id));
+  //   if (activeMenu === "Orders") setOrders((prev) => prev.filter((o) => o.id !== id));
+  //   if (activeMenu === "Users") setUsers((prev) => prev.filter((u) => u.id !== id));
+  //   if (activeMenu === "Categories") setCategories((prev) => prev.filter((c) => c.id !== id));
+  //   showToast(`${activeMenu.slice(0, -1)} deleted successfully!`);
+  // };
+
+  const handleDelete = async (id) => {
+  if (!window.confirm(`Are you sure you want to delete this ${activeMenu.slice(0, -1)}?`)) return;
+
+  try {
+    let url = "";
+    if (activeMenu === "Products") url = `${BASE_URL}/products/${id}`;
+    if (activeMenu === "Categories") url = `${BASE_URL}/categories/${id}`;
+    if (activeMenu === "Orders") url = `${BASE_URL}/orders/${id}`;
+    if (activeMenu === "Users") url = `${BASE_URL}/users/${id}`;
+
+    if (!url) return;
+
+    const res = await fetch(url, { method: "DELETE" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      // If deleting a category with products, show product list
+      if (activeMenu === "Categories" && data.products) {
+        const productNames = data.products.map(p => p.name).join(", ");
+        alert(
+          `Cannot delete category. It has assigned products: ${productNames}.\n` +
+          `Please reassign or delete these products first.`
+        );
+        return;
+      }
+
+      throw new Error(data.error || "Failed to delete");
+    }
+
+    // Update frontend state
+    if (activeMenu === "Products") setProducts(prev => prev.filter(p => p.id !== id));
+    if (activeMenu === "Categories") setCategories(prev => prev.filter(c => c.id !== id));
+    if (activeMenu === "Orders") setOrders(prev => prev.filter(o => o.id !== id));
+    if (activeMenu === "Users") setUsers(prev => prev.filter(u => u.id !== id));
+
+    showToast(`${activeMenu.slice(0, -1)} deleted successfully!`);
+  } catch (err) {
+    console.log(err);
+    showToast(err.message);
+  }
+};
+
+
+  const openModal = (item = null) => {
+    setEditingItem(item);
+    setShowModal(true);
+    setImagePreview(item?.image ? resolveImage(item.image) : "");
+    setImageFile(null);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  // const handleSave = async () => {
+  //   if (activeMenu !== "Products") return;
+
+  //   const formData = new FormData();
+  //   formData.append("name", document.querySelector("#product-name").value);
+  //   formData.append("category", document.querySelector("#product-category").value);
+  //   formData.append("price", document.querySelector("#product-price").value);
+  //   formData.append("rating", document.querySelector("#product-rating").value);
+
+  //   // Send new image if selected, else send current image filename
+  //   if (imageFile) {
+  //     console.log("Uploading file:", imageFile.name);
+  //     formData.append("image", imageFile);
+  //   } else if (editingItem?.image) {
+      
+  //     formData.append("existingImage", editingItem.image);
+  //   }
+
+  //   const url = editingItem ? `${BASE_URL}/products/${editingItem.id}` : `${BASE_URL}/products`;
+
+  //   try {
+  //     const res = await fetch(url, {
+  //       method: editingItem ? "PUT" : "POST",
+  //       body: formData,
+  //     });
+
+  //     const text = await res.text();
+  //     let data = text ? JSON.parse(text) : {};
+  //     if (!res.ok) throw new Error(data?.error || "Failed to save product");
+
+     
+
+  //     showToast(`Product ${editingItem ? "updated" : "added"} successfully!`);
+
+  //     if (editingItem) {
+  //       setProducts((prev) => prev.map((p) => (p.id === editingItem.id ? data.data || { ...p } : p)));
+  //     } else {
+  //       setProducts((prev) => [...prev, data.data || {}]);
+  //     }
+
+  //     setShowModal(false);
+  //     setImageFile(null);
+  //     setImagePreview("");
+  //   } catch (err) {
+  //      console.log(err.message);
+  //     showToast(err.message);
+  //   }
+  // };
+
+  const handleSave = async () => {
+  let url = "";
+  let method = "";
+  let formData = new FormData();
+
+  // ----------------------
+  // SAVE PRODUCT
+  // ----------------------
+  if (activeMenu === "Products") {
+    formData.append("name", document.querySelector("#product-name").value);
+    formData.append("category", document.querySelector("#product-category").value);
+    formData.append("price", document.querySelector("#product-price").value);
+    formData.append("rating", document.querySelector("#product-rating").value);
+
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
+
+    url = editingItem
+      ? `${BASE_URL}/products/${editingItem.id}`
+      : `${BASE_URL}/products`;
+
+    method = editingItem ? "PUT" : "POST";
+  }
+
+  // ----------------------
+  // SAVE CATEGORY
+  // ----------------------
+  if (activeMenu === "Categories") {
+    const name = document.querySelector("#category-name").value;
+
+    formData.append("name", name);
+    formData.append("description", name);
+
+    url = editingItem
+      ? `${BASE_URL}/categories/${editingItem.id}`
+      : `${BASE_URL}/categories`;
+
+    method = editingItem ? "PUT" : "POST";
+  }
+
+  // NOTHING TO SAVE
+  if (!url) return;
+
+  try {
+    const res = await fetch(url, { method, body: formData });
+
+    const text = await res.text();
+    let data = text ? JSON.parse(text) : {};
+    console.log(data)
+    if (!res.ok) throw new Error(data.error || "Failed to save");
+
+    showToast(
+      `${activeMenu.slice(0, -1)} ${editingItem ? "updated" : "added"} successfully!`
+    );
+
+    // Update state
+    if (activeMenu === "Products") {
+      if (editingItem) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === editingItem.id ? data.data : p
+          )
+        );
+      } else {
+        setProducts((prev) => [...prev, data.data]);
+      }
+    }
+
+    if (activeMenu === "Categories") {
+      if (editingItem) {
+        setCategories((prev) =>
+          prev.map((c) =>
+            c.id === editingItem.id ? data.data : c
+          )
+        );
+      } else {
+        setCategories((prev) => [...prev, data.data]);
+      }
+    }
+
+    setShowModal(false);
+    setImageFile(null);
+    setImagePreview("");
+  } catch (err) {
+    console.log(err.message);
+    showToast(err.message);
+  }
+};
+
+
+  const { paginated, totalPages } = (() => {
+    if (activeMenu === "Products") return getPaginated(products);
+    if (activeMenu === "Orders") return getPaginated(orders);
+    if (activeMenu === "Users") return getPaginated(users);
+    return getPaginated(categories);
+  })();
+
+  const prevPage = () => setPage((p) => Math.max(1, p - 1));
+  const nextPage = () => setPage((p) => Math.min(totalPages, p + 1));
+
+  return (
+    <div className="d-flex min-vh-100 bg-light flex-column flex-lg-row">
+      {toasts.map((t) => (
+        <Toast key={t.id} message={t.message} onDone={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))} />
+      ))}
+
+      {/* Sidebar */}
+      <div className="bg-white shadow-sm p-3 flex-shrink-0" style={{ width: "220px" }}>
+        <h5 className="fw-bold text-success mb-4">Admin Panel</h5>
+        {["Dashboard", "Products", "Orders", "Users", "Categories"].map((menu) => (
+          <div
+            key={menu}
+            className={`p-2 mb-1 rounded ${activeMenu === menu ? "bg-success text-white" : "text-secondary"}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => { setActiveMenu(menu); setPage(1); }}
+          >
+            {menu}
           </div>
         ))}
       </div>
 
-      {/* Product Pagination */}
-      {totalProdPages > 1 && (
-        <nav>
-          <ul className="pagination justify-content-start">
-            <li className={`page-item ${prodPage === 1 ? "disabled" : ""}`}>
-              <button className="btn btn-sm btn-outline-success me-1" onClick={() => setProdPage(p => Math.max(1, p - 1))}>Prev</button>
-            </li>
-            {Array.from({ length: totalProdPages }, (_, i) => (
-              <li key={i} className="page-item">
-                <button
-                  className={`btn btn-sm me-1 ${i + 1 === prodPage ? "btn-success text-white" : "btn-outline-success"}`}
-                  onClick={() => setProdPage(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              </li>
-            ))}
-            <li className={`page-item ${prodPage === totalProdPages ? "disabled" : ""}`}>
-              <button className="btn btn-sm btn-outline-success" onClick={() => setProdPage(p => Math.min(totalProdPages, p + 1))}>Next</button>
-            </li>
-          </ul>
-        </nav>
-      )}
+      {/* Main */}
+      <div className="flex-grow-1 p-4">
+        <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4 className="text-success">{activeMenu}</h4>
+          {(activeMenu === "Products" || activeMenu === "Users" || activeMenu === "Categories") && (
+            <button className="btn btn-success" onClick={() => openModal()}>
+              <i className="bi bi-plus-circle me-2"></i> Add {activeMenu.slice(0, -1)}
+            </button>
+          )}
+        </div>
 
-      <style>
-        {`
-          .product-img:hover {
-            transform: scale(1.2);
-          }
-        `}
-      </style>
+        {/* Search */}
+        <input
+          type="text"
+          className="form-control mb-3 rounded-pill"
+          placeholder={`Search ${activeMenu.toLowerCase()}...`}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        {/* Table */}
+        <div className="table-responsive">
+          <table className="table table-striped table-hover shadow-sm rounded-4 bg-white">
+            <thead className="table-success">
+              <tr>
+                {activeMenu === "Products" && <><th>#</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Rating</th></>}
+                {activeMenu === "Orders" && <><th>#</th><th>Order Ref</th><th>Customer</th><th>Total</th><th>Status</th></>}
+                {activeMenu === "Users" && <><th>#</th><th>Name</th><th>Email</th><th>Role</th></>}
+                {activeMenu === "Categories" && <><th>#</th><th>Name</th></>}
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map((item, i) => (
+                <tr key={item.id}>
+                  <td>{i + 1 + (page - 1) * itemsPerPage}</td>
+                  {activeMenu === "Products" && <>
+                    <td><img src={resolveImage(item.image)} alt={item.name} style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "5px" }} /></td>
+                    <td>{item.name}</td><td>{item.category}</td><td>{item.price.toLocaleString()}</td><td>{item.rating}</td>
+                  </>}
+                  {activeMenu === "Orders" && <>
+                    <td>{item.reference}</td><td>{item.customer}</td><td>{item.total.toLocaleString()}</td><td>{item.status}</td>
+                  </>}
+                  {activeMenu === "Users" && <>
+                    <td>{item.name}</td><td>{item.email}</td><td>{item.role}</td>
+                  </>}
+                  {activeMenu === "Categories" && <td>{item.name}</td>}
+                  <td>
+                    {activeMenu !== "Orders" && <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openModal(item)}>Edit</button>}
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(item.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+              {paginated.length === 0 && (
+                <tr>
+                  <td colSpan={activeMenu === "Categories" ? 2 : activeMenu === "Products" ? 6 : 4} className="text-center text-muted py-3">
+                    No {activeMenu.toLowerCase()} found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <nav>
+            <ul className="pagination justify-content-center">
+              <li className={`page-item ${page === 1 ? "disabled" : ""}`}><button className="page-link rounded-pill" onClick={prevPage}>Prev</button></li>
+              {[...Array(totalPages)].map((_, i) => (
+                <li key={i} className={`page-item ${page === i + 1 ? "active" : ""}`}>
+                  <button className="page-link rounded-pill" onClick={() => setPage(i + 1)}>{i + 1}</button>
+                </li>
+              ))}
+              <li className={`page-item ${page === totalPages ? "disabled" : ""}`}><button className="page-link rounded-pill" onClick={nextPage}>Next</button></li>
+            </ul>
+          </nav>
+        )}
+
+        {/* Modal */}
+        {showModal && (
+          <div className="modal fade show d-block" tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content rounded-4 shadow-sm">
+                <div className="modal-header">
+                  <h5 className="modal-title">{editingItem ? "Edit" : "Add"} {activeMenu.slice(0, -1)}</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowModal(false)} />
+                </div>
+                <div className="modal-body">
+                  {activeMenu === "Products" && <>
+                    <input id="product-name" type="text" className="form-control mb-3" placeholder="Product Name" defaultValue={editingItem?.name || ""} />
+                    <select id="product-category" className="form-control mb-3" defaultValue={editingItem?.category || ""}>
+                      <option value="" disabled>Select Category</option>
+                      {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                    <input id="product-price" type="number" className="form-control mb-3" placeholder="Price" defaultValue={editingItem?.price || ""} />
+                    <input id="product-rating" type="number" className="form-control mb-3" placeholder="Rating" defaultValue={editingItem?.rating || 0} />
+                    <input id="product-image" type="file" className="form-control mb-2" accept="image/*" onChange={handleImageChange} />
+                    {imagePreview && <div className="text-center mb-2">
+                      <img src={imagePreview} alt="Preview" style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "5px" }} />
+                    </div>}
+                  </>}
+                  {activeMenu === "Users" && <>
+                    <input type="text" className="form-control mb-3" placeholder="Name" defaultValue={editingItem?.name || ""} />
+                    <input type="email" className="form-control mb-3" placeholder="Email" defaultValue={editingItem?.email || ""} />
+                    <input type="text" className="form-control mb-3" placeholder="Role" defaultValue={editingItem?.role || "user"} />
+                  </>}
+                  {activeMenu === "Categories" && <input type="text" className="form-control mb-3" id="category-name" placeholder="Category Name" defaultValue={editingItem?.name || ""} />}
+                  {activeMenu === "Orders" && <p>Orders cannot be manually added here.</p>}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Close</button>
+                  {activeMenu !== "Orders" && <button className="btn btn-success" onClick={handleSave}>Save</button>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

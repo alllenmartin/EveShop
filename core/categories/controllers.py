@@ -68,14 +68,19 @@ def create_category_controller():
 # --------------------------     
 def update_category_controller(category_id):
     try:
-        request_form = request.form.to_dict() or request.get_json()
+        request_form = request.form.to_dict() or request.get_json() or {}
 
         category = Category.query.get(category_id)
         if not category:
             return jsonify({"error": "Category not found"}), 404
 
-        for key, value in request_form.items():
-            setattr(category, key, value)
+        # Ensure required fields exist
+        name = request_form.get("name")
+        description = request_form.get("description", "Default description")  # <- default
+
+        if name:
+            category.name = name
+        category.description = description
 
         db.session.commit()
 
@@ -92,23 +97,31 @@ def update_category_controller(category_id):
 # --------------------------
 # DELETE category
 # --------------------------
-def delete_category_controller(id):
+def delete_category_controller(category_id):
     try:
-        category = Category.query.get(id)
+        category = Category.query.get(category_id)
         if not category:
-            return jsonify({"error": "Product not found"}), 404
+            return jsonify({"error": "Category not found"}), 404
 
+        # If category has products, return their info
+        if category.products and len(category.products) > 0:
+            return jsonify({
+                "error": "Category has products",
+                "products": [p.to_dict() for p in category.products]
+            }), 400
+
+        # Safe to delete
         db.session.delete(category)
         db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Category deleted successfully"
+        })
 
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-    return jsonify({
-        "success": True,
-        "message": f"Product '{category.name}' deleted successfully!"
-    })
     
 
 def get_category_by_slug(id):

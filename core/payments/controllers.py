@@ -74,6 +74,7 @@ def initiate_stk_push(phone_number, amount, reference):
 
     # Encode the concatenated string to base64
     password = base64.b64encode(concat_string.encode()).decode()
+  
     
 
     payload = {

@@ -95,7 +95,11 @@ const CataloguePage = () => {
   // Auth / checkout
   const [checkoutMode, setCheckoutMode] = useState(false);
   //const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // default true for testing
+  // const [isLoggedIn, setIsLoggedIn] = useState(false); // default true for testing
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+  return localStorage.getItem("isLoggedIn") === "true";    
+  });
+
   const [userPhone, setUserPhone] = useState("254703622386"); // default
 
   // Cart
@@ -190,13 +194,82 @@ const CataloguePage = () => {
 
   const grandTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
+// Base URL for backend
+const BASE_URL = "http://localhost:5000";
+
+// Resolve image helper
+const resolveImage = (imgUrl) => {
+  if (!imgUrl) return "https://via.placeholder.com/400x300?text=No+Image";
+  if (imgUrl.startsWith("http")) return imgUrl;
+  if (imgUrl.startsWith("/")) return `${BASE_URL}${imgUrl}`;
+  return `${BASE_URL}/uploads/${imgUrl}`;
+};
+
 
   // Handle Checkout
-const handleCheckoutRedirect = (e) => {
-  const target = isLoggedIn ? "/checkout" : "/login";
+// const handleCheckoutRedirect = (e) => {
+//   const target = isLoggedIn ? "/checkout" : "/login";
 
+//   if (!isLoggedIn) {
+//     // Show toast
+//     const toastEl = document.createElement("div");
+//     toastEl.className =
+//       "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
+//     toastEl.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>Please log in first`;
+//     toastEl.style.zIndex = 1055;
+//     toastEl.style.minWidth = "220px";
+//     toastEl.style.opacity = "0";
+//     toastEl.style.transform = "translateY(-60px)";
+//     toastEl.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+//     document.body.appendChild(toastEl);
+
+//     requestAnimationFrame(() => {
+//       toastEl.style.opacity = "1";
+//       toastEl.style.transform = "translateY(0)";
+//     });
+
+//     setTimeout(() => {
+//       toastEl.style.opacity = "0";
+//       toastEl.style.transform = "translateY(-20px)";
+
+//       setTimeout(() => {
+//         document.body.removeChild(toastEl);
+
+//         // Fade out page
+//         document.body.style.transition = "opacity 0.6s ease";
+//         document.body.style.opacity = 0;
+
+//         // Redirect
+//         setTimeout(() => {
+//           window.location.href = target;
+//         }, 600);
+//       }, 500);
+//     }, 2500);
+
+//     return; // stop further execution
+//   }
+
+//   // Save checkout data
+//   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+//   localStorage.setItem("checkoutData", JSON.stringify({ cart, subtotal }));
+
+//   // Animate button
+//   e.currentTarget.style.transform = "scale(1.1)";
+//   e.currentTarget.style.opacity = "0.7";
+
+//   // Fade out page and redirect
+//   document.body.style.transition = "opacity 0.6s ease";
+//   document.body.style.opacity = 0;
+//   setTimeout(() => {
+//     window.location.href = target;
+//   }, 600);
+// };
+//  //End
+
+// Refactored handleCheckoutRedirect
+const handleCheckoutRedirect = (e) => {
   if (!isLoggedIn) {
-    // Show toast
+    // User not logged in → show toast and redirect
     const toastEl = document.createElement("div");
     toastEl.className =
       "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
@@ -216,40 +289,33 @@ const handleCheckoutRedirect = (e) => {
     setTimeout(() => {
       toastEl.style.opacity = "0";
       toastEl.style.transform = "translateY(-20px)";
-
       setTimeout(() => {
         document.body.removeChild(toastEl);
-
-        // Fade out page
+        // Fade out page then redirect to login
         document.body.style.transition = "opacity 0.6s ease";
         document.body.style.opacity = 0;
-
-        // Redirect
         setTimeout(() => {
-          window.location.href = target;
+          window.location.href = "/login";
         }, 600);
       }, 500);
     }, 2500);
 
-    return; // stop further execution
+    return; // Stop further execution
   }
 
-  // Save checkout data
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  localStorage.setItem("checkoutData", JSON.stringify({ cart, subtotal }));
+  // User is logged in → proceed to checkout modal
+  setCheckoutMode(true);
+  setShowCart(true);
 
-  // Animate button
-  e.currentTarget.style.transform = "scale(1.1)";
-  e.currentTarget.style.opacity = "0.7";
-
-  // Fade out page and redirect
-  document.body.style.transition = "opacity 0.6s ease";
-  document.body.style.opacity = 0;
+  // Optional: small button animation feedback
+  e.currentTarget.style.transform = "scale(1.05)";
+  e.currentTarget.style.opacity = "0.85";
   setTimeout(() => {
-    window.location.href = target;
-  }, 600);
+    e.currentTarget.style.transform = "";
+    e.currentTarget.style.opacity = "";
+  }, 200);
 };
- //End
+
   
 
   // Cart manipulation functions
@@ -508,7 +574,7 @@ const handleCheckoutRedirect = (e) => {
                   <ul className="list-group">
                     {wishlist.map(item => (
                       <li key={item.id} className="list-group-item d-flex align-items-center gap-3">
-                        <img src={item.image} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
+                        <img src={resolveImage(item.image)} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
                         <div className="flex-grow-1">
                           <div className="d-flex justify-content-between align-items-start">
                             <div>
@@ -564,7 +630,7 @@ const handleCheckoutRedirect = (e) => {
                     <ul className="list-group">
                       {cart.map(item => (
                         <li key={item.id} className="list-group-item d-flex align-items-center gap-3">
-                          <img src={item.image} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
+                          <img src={resolveImage(item.image)} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
                           <div className="flex-grow-1">
                             <div className="d-flex justify-content-between align-items-start">
                               <div>
@@ -738,7 +804,7 @@ const handleCheckoutRedirect = (e) => {
                     <div className="card h-100 border-0 shadow-sm rounded-4 hover-shadow">
                       <div className="p-2 overflow-hidden">
                         <Link to={`/product/${product.id}`}>
-                          <img src={product.image} alt={product.name} className="w-100 rounded-3" style={{ height: "150px", objectFit: "contain", transition: "transform 0.25s ease" }} onMouseOver={e => (e.currentTarget.style.transform = "scale(1.05)")} onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}/>
+                          <img src={resolveImage(product.image)} alt={product.name} className="w-100 rounded-3" style={{ height: "150px", objectFit: "contain", transition: "transform 0.25s ease" }} onMouseOver={e => (e.currentTarget.style.transform = "scale(1.05)")} onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}/>
                         </Link>
                       </div>
                       <div className="card-body p-3 d-flex flex-column">

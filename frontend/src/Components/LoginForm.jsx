@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import leafLogo from "../assets/leaf.png";
 import { loginUser } from "../api";
 
@@ -13,6 +13,7 @@ const theme = {
   gradientEnd: "#c8e6c9",
 };
 
+// Toast component
 const Toast = ({ message, duration = 3000, onDone }) => {
   useEffect(() => {
     const timer = setTimeout(() => onDone(), duration);
@@ -39,6 +40,10 @@ const Toast = ({ message, duration = 3000, onDone }) => {
 };
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/products"; // redirect back if exists
+
   const [formData, setFormData] = useState({ email: "", password: "", remember: false });
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -68,34 +73,41 @@ const LoginPage = () => {
     setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError(""); 
-  setSuccess(""); 
-  setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
-  try {
-    const data = await loginUser(formData);
-    console.log(data);
+    try {
+      const data = await loginUser(formData);
 
-    if (data.message) {
-      setSuccess(data.message);
-      setToasts(prev => [...prev, { id: Date.now(), message: data.message }]);
+      if (data.message) {
+        setSuccess(data.message);
+        setToasts(prev => [...prev, { id: Date.now(), message: data.message }]);
 
-      if (data.token) localStorage.setItem("authToken", data.token);
+        // Store token based on Remember Me
+        if (data.token) {
+          if (formData.remember) {
+            localStorage.setItem("authToken", data.token);
+            localStorage.setItem("isLoggedIn", "true");
+          } else {
+            sessionStorage.setItem("authToken", data.token);
+            sessionStorage.setItem("isLoggedIn", "true");
+          }
+        }
 
-      // Redirect after 1 second
-      setTimeout(() => window.location.href = "/products", 1000);
-    } else {
-      setError("Something went wrong. Try again.");
+        // Redirect back to previous page or default
+        setTimeout(() => navigate(from, { replace: true }), 1000);
+      } else {
+        setError("Something went wrong. Try again.");
+      }
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError(err.message || "Login failed");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <main

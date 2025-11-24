@@ -19,19 +19,19 @@ class Products(db.Model, UserMixin):
     rating = db.Column(db.Integer, default=0, nullable=False)
     # order_items = db.relationship("OrderItems", backref="product", lazy=True)
     # cart_items = db.relationship("CartItems", backref="cart_product", lazy=True)
-    created_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
     
     
    
     
-    def __init__(self,name,description,price,quantity,image,category_id):
-        self.created_at = datetime.now()
-        self.name = name
-        self.description= description
-        self.price = price
-        self.quantity = quantity
-        self.image=image
-        self.category_id = category_id
+    # def __init__(self,name,description,price,quantity,image,category_id):
+    #     self.created_at = datetime.now()
+    #     self.name = name
+    #     self.description= description
+    #     self.price = price
+    #     self.quantity = quantity
+    #     self.image=image
+    #     self.category_id = category_id
        
     
     def to_dict(self):
@@ -43,7 +43,7 @@ class Products(db.Model, UserMixin):
             'quantity': self.quantity,
             "category": self.category.name if self.category else None,
             'rating': self.rating,
-            'image': self.image,  
+            "image": self.image,
             'created_at':self.created_at
         }
         

@@ -19,6 +19,7 @@ def get_each_product(id):
     else: return 'Method is Not Allowed'
     
 @app.route("/products/<uuid:id>", methods=['PUT','DELETE'])
+@cross_origin()
 def update_product_accounts(id):
    if request.method == 'PUT': return update_product_controller(id)
    if request.method == 'DELETE': return delete_product_controller(id)

@@ -25,6 +25,7 @@ const ProductDetailsPage = () => {
   const [toastMsg, setToastMsg] = useState("");
   const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "");
   const [showWishlist, setShowWishlist] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); 
 
   useEffect(() => {
     fetch("http://localhost:5000/products")
@@ -61,6 +62,17 @@ const ProductDetailsPage = () => {
     }
   };
 
+  // Resolve image helper
+// Base URL for backend
+const BASE_URL = "http://localhost:5000";
+const resolveImage = (imgUrl) => {
+  if (!imgUrl) return "https://via.placeholder.com/400x300?text=No+Image";
+  if (imgUrl.startsWith("http")) return imgUrl;
+  if (imgUrl.startsWith("/")) return `${BASE_URL}${imgUrl}`;
+  return `${BASE_URL}/uploads/${imgUrl}`;
+};
+
+
   // For other items (e.g. wishlist modal)
   const toggleWishlistItem = (item) => {
     const exists = wishlist.find(p => p.id === item.id);
@@ -82,6 +94,67 @@ const ProductDetailsPage = () => {
     }
     showToastMessage(`Added ${item.name} to cart!`);
   };
+
+    // Handle Checkout
+const handleCheckoutRedirect = (e) => {
+  const target = isLoggedIn ? "/checkout" : "/login";
+
+  if (!isLoggedIn) {
+    // Show toast
+    const toastEl = document.createElement("div");
+    toastEl.className =
+      "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
+    toastEl.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>Please log in first`;
+    toastEl.style.zIndex = 1055;
+    toastEl.style.minWidth = "220px";
+    toastEl.style.opacity = "0";
+    toastEl.style.transform = "translateY(-60px)";
+    toastEl.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+    document.body.appendChild(toastEl);
+
+    requestAnimationFrame(() => {
+      toastEl.style.opacity = "1";
+      toastEl.style.transform = "translateY(0)";
+    });
+
+    setTimeout(() => {
+      toastEl.style.opacity = "0";
+      toastEl.style.transform = "translateY(-20px)";
+
+      setTimeout(() => {
+        document.body.removeChild(toastEl);
+
+        // Fade out page
+        document.body.style.transition = "opacity 0.6s ease";
+        document.body.style.opacity = 0;
+
+        // Redirect
+        setTimeout(() => {
+          window.location.href = target;
+        }, 600);
+      }, 500);
+    }, 2500);
+
+    return; // stop further execution
+  }
+
+  // Save checkout data
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  localStorage.setItem("checkoutData", JSON.stringify({ cart, subtotal }));
+
+  // Animate button
+  e.currentTarget.style.transform = "scale(1.1)";
+  e.currentTarget.style.opacity = "0.7";
+
+  // Fade out page and redirect
+  document.body.style.transition = "opacity 0.6s ease";
+  document.body.style.opacity = 0;
+  setTimeout(() => {
+    window.location.href = target;
+  }, 600);
+};
+ //End
+  
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -226,7 +299,7 @@ const ProductDetailsPage = () => {
                   <ul className="list-group">
                     {wishlist.map(item => (
                       <li key={item.id} className="list-group-item d-flex align-items-center gap-3">
-                        <img src={item.image} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
+                        <img src={resolveImage(item.image)} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
                         <div className="flex-grow-1">
                           <div className="d-flex justify-content-between align-items-start">
                             <div>
@@ -258,109 +331,124 @@ const ProductDetailsPage = () => {
       )}
 
       {/* Cart Modal */}
-      {showCart && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+       {showCart && (
+        <div className="modal fade show d-block" tabIndex="-1">
           <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg">
-              <div className="modal-header bg-success text-white">
-                <h5 className="modal-title">Your Cart</h5>
-                <button type="button" className="btn-close" onClick={() => setShowCart(false)}></button>
+            <div className="modal-content rounded-4 shadow-sm">
+              <div className="modal-header">
+                <h5 className="modal-title">{checkoutMode ? "Checkout" : "Your Cart"}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowCart(false)} />
               </div>
-              <div className="modal-body">
-                {cart.length === 0 ? (
-                  <p>Your cart is empty.</p>
-                ) : checkoutMode ? (
-                  <div>
-                    <h6>Confirm Your Order</h6>
-                    <p>Total Items: {cart.length}</p>
-                    <p>Grand Total: Ksh {grandTotal.toLocaleString()}</p>
-                    <div className="mb-3">
-                      <label className="form-label">Phone Number</label>
-                      <input
-                        type="tel"
-                        className="form-control"
-                        value={userPhone}
-                        onChange={e => setUserPhone(e.target.value)}
-                        placeholder="Enter phone number"
-                      />
-                    </div>
-                    <div className="d-flex gap-2">
-                      <button className="btn btn-success" onClick={placeOrder}>
-                        <i className="bi bi-check-circle me-2"></i> Place Order
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => setCheckoutMode(false)}
-                      >
-                        <i className="bi bi-arrow-left me-2"></i> Back to Cart
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <ul className="list-group">
-                    {cart.map(item => (
-                      <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
-                        <div className="d-flex align-items-center gap-2 flex-grow-1">
-                          <span>{item.name}</span>
-                          <div className="d-flex gap-1 align-items-center ms-3">
-                            <button
-                              className="btn btn-sm btn-outline-secondary p-1"
-                              onClick={() =>
-                                handleCartQuantityChange(item.id, Math.max(1, item.quantity - 1))
-                              }
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              className="form-control form-control-sm text-center"
-                              style={{ width: "40px", padding: "0" }}
-                              value={item.quantity}
-                              min={1}
-                              onChange={e =>
-                                handleCartQuantityChange(item.id, Math.max(1, Number(e.target.value)))
-                              }
-                            />
-                            <button
-                              className="btn btn-sm btn-outline-secondary p-1"
-                              onClick={() =>
-                                handleCartQuantityChange(item.id, item.quantity + 1)
-                              }
-                            >
-                              +
-                            </button>
+
+              <div className="modal-body" style={{ minHeight: "220px", position: "relative" }}>
+                {/* Cart View */}
+                <div style={{
+                  opacity: checkoutMode ? 0 : 1,
+                  transform: checkoutMode ? "translateX(-10px)" : "translateX(0)",
+                  transition: "all 0.25s ease",
+                  position: checkoutMode ? "absolute" : "relative",
+                  width: "100%",
+                }}>
+                  {cart.length === 0 ? (
+                    <div className="text-center py-5 text-muted">Your cart is empty.</div>
+                  ) : (
+                    <ul className="list-group">
+                      {cart.map(item => (
+                        <li key={item.id} className="list-group-item d-flex align-items-center gap-3">
+                          <img src={resolveImage(item.image)} alt={item.name} style={{ width: 64, height: 64, objectFit: "contain" }} className="rounded" />
+                          <div className="flex-grow-1">
+                            <div className="d-flex justify-content-between align-items-start">
+                              <div>
+                                <div className="fw-semibold">{item.name}</div>
+                                <small className="text-muted">Ksh {item.price.toLocaleString()}</small>
+                              </div>
+                              <div className="text-end fw-bold">Ksh {(item.price * item.quantity).toLocaleString()}</div>
+                            </div>
+
+                            <div className="d-flex gap-2 align-items-center mt-2">
+                              <button className="btn btn-sm btn-outline-secondary p-1" style={{ minWidth: 32 }} onClick={() => handleCartQuantityChange(item.id, Math.max(1, item.quantity - 1))}>-</button>
+                              <input
+                                type="number"
+                                className="form-control form-control-sm text-center"
+                                style={{ width: 60 }}
+                                value={item.quantity}
+                                min={1}
+                                onChange={e => handleCartQuantityChange(item.id, Math.max(1, Number(e.target.value) || 1))}
+                              />
+                              <button className="btn btn-sm btn-outline-secondary p-1" style={{ minWidth: 32 }} onClick={() => handleCartQuantityChange(item.id, item.quantity + 1)}>+</button>
+
+                              <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => handleRemoveFromCart(item.id)}>Remove</button>
+                            </div>
                           </div>
-                          <button
-                            className="btn btn-sm btn-outline-danger ms-2"
-                            onClick={() => handleRemoveFromCart(item.id)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                        <span className="fw-bold">
-                          Ksh {(item.price * item.quantity).toLocaleString()}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Checkout View */}
+                <div style={{
+                  opacity: checkoutMode ? 1 : 0,
+                  transform: checkoutMode ? "translateX(0)" : "translateX(10px)",
+                  transition: "all 0.25s ease",
+                  position: checkoutMode ? "relative" : "absolute",
+                  width: "100%",
+                }}>
+                  {checkoutMode && (
+                    <div>
+                      <h6 className="fw-semibold">Confirm your order</h6>
+                      <p className="text-muted">Grand Total: <span className="fw-bold">Ksh {grandTotal.toLocaleString()}</span></p>
+
+                      <div className="mb-3">
+                        <label className="form-label">Phone Number</label>
+                        <input
+                          type="tel"
+                          className="form-control"
+                          value={userPhone}
+                          onChange={e => setUserPhone(e.target.value)}
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+
+                      <div className="d-flex gap-2">
+                        <button className="btn btn-success" onClick={placeOrder}>
+                          <i className="bi bi-check-circle me-2"></i> Place Order
+                        </button>
+
+                        <button className="btn btn-secondary" onClick={() => { setCheckoutMode(false); }}>
+                          <i className="bi bi-arrow-left me-2"></i> Back to Cart
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!checkoutMode && (
+              <div className="modal-footer">
+                <div className="me-auto">
+                  <h6 className="mb-0">
+                    Grand Total: <span className="fw-bold">Ksh {grandTotal.toLocaleString()}</span>
+                  </h6>
+                </div>
+
+                <button className="btn btn-outline-secondary" onClick={() => setShowCart(false)}>
+                  Close
+                </button>
+
+                {cart.length > 0 && (
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-success"
+                      style={{ transition: "transform 0.3s ease, opacity 0.3s ease" }}
+                      onClick={handleCheckoutRedirect}
+                    >
+                      <i className="bi bi-credit-card-2-front me-2"></i> Checkout
+                    </button>
+                  </div>
                 )}
               </div>
-              {!checkoutMode && cart.length > 0 && (
-                <div className="modal-footer">
-                  <div className="me-auto">
-                    <h6 className="mb-0">
-                      Grand Total:{" "}
-                      <span className="fw-bold">Ksh {grandTotal.toLocaleString()}</span>
-                    </h6>
-                  </div>
-                  <button className="btn btn-outline-secondary" onClick={() => setShowCart(false)}>
-                    Close
-                  </button>
-                  <button className="btn btn-success" onClick={() => setCheckoutMode(true)}>
-                    <i className="bi bi-credit-card-2-front me-2"></i> Checkout
-                  </button>
-                </div>
-              )}
+            )}
             </div>
           </div>
         </div>
@@ -375,7 +463,7 @@ const ProductDetailsPage = () => {
           <div className="col-md-6">
             <div className="overflow-hidden rounded-4 hover-shadow position-relative">
               <img
-                src={product.image}
+                src={resolveImage(product.image)}
                 alt={product.name}
                 className="img-fluid w-100"
                 style={{ maxHeight: "240px", objectFit: "contain", transition: "transform 0.25s ease" }}
