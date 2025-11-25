@@ -2,7 +2,8 @@ from core import db
 from flask_login import UserMixin
 from sqlalchemy import inspect
 from datetime import datetime
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields,INCLUDE
+from sqlalchemy.dialects.postgresql import JSON
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 import enum
@@ -29,15 +30,28 @@ class Orders(db.Model, UserMixin):
     status = db.Column(db.Enum(OrderStatus), default=OrderStatus.PENDING, nullable=False)
     total_amount = db.Column(db.Numeric(precision=10,scale=2),nullable=False) 
     quantity = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False) 
+     # Add all these as optional
+    items = db.Column(JSON, nullable=True)
+    deliveryMethod = fields.Str(required=False)
+    deliveryFee = fields.Float(required=False)
+    deliveryDate = fields.Str(required=False)
+    deliveryTime = fields.Str(required=False)
+    paymentMethod = fields.Str(required=False)
+    walletDeduction = fields.Float(required=False)
+    remainingPayment = fields.Float(required=False)
+    address = fields.Dict(required=False)
+    reference = fields.Str(required=False)
+    userPhone = fields.Str(required=False)
+    total = fields.Float(required=False)
     # payment = db.relationship("Payments", backref="orders", uselist=False)
    
     
-    def __init__(self,user_id,total_amount,quantity):
-        self.created_at = datetime.now()
-        self.user_id= user_id
-        self.total_amount = total_amount
-        self.quantity = quantity
+    # def __init__(self,user_id,total_amount,quantity):
+    #     self.created_at = datetime.now()
+    #     self.user_id= user_id
+    #     self.total_amount = total_amount
+    #     self.quantity = quantity
   
        
     
@@ -47,7 +61,7 @@ class Orders(db.Model, UserMixin):
             'user_id': self.user_id,
             'total_amount': self.total_amount,
             'quantity': self.quantity,
-            'status': self.status,
+            'status': self.status.value,
             'created_at':self.created_at
         }
         
@@ -68,9 +82,25 @@ class Orders(db.Model, UserMixin):
 
     
 class OrderSchema(Schema):
+    class Meta:
+        unknown = INCLUDE
+        
     user_id = fields.String(required=True)
     quantity = fields.Integer(required=True)
     total_amount= fields.Float(required=True)
+    
+    items = db.Column(JSON, nullable=True)
+    deliveryMethod = fields.Str(required=False)
+    deliveryFee = fields.Float(required=False)
+    deliveryDate = fields.Str(required=False)
+    deliveryTime = fields.Str(required=False)
+    paymentMethod = fields.Str(required=False)
+    walletDeduction = fields.Float(required=False)
+    remainingPayment = fields.Float(required=False)
+    address = fields.Dict(required=False)
+    reference = fields.Str(required=False)
+    userPhone = fields.Str(required=False)
+    total = fields.Float(required=False)
 
  
     

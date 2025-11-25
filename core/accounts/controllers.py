@@ -1,10 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta,timezone
 from flask import Blueprint, request, jsonify, current_app
 from flask_mail import Message
 from core import db, mail
 from .models import User, UserSchema
 import secrets
+import jwt
 import re
+SECRET_KEY = "5e3f13c620903283ab1f016826d331990dc913f7141d3a13ad5fa8409393c7d0"
 
 user_schema = UserSchema()
 accounts_bp = Blueprint("accounts", __name__)
@@ -102,4 +104,21 @@ def login_user():
     if not user.is_verified:
         return jsonify({"error": "Account not verified. Please verify OTP first."}), 403
 
-    return jsonify({"message": f"Welcome {user.full_name}!"}), 200
+     # Generate JWT token (expires in 1 day)
+    token_payload = {
+        "user_id": str(user.id),
+        "email": user.email_or_phone,
+        "exp": datetime.now(timezone.utc) + timedelta(days=1)
+    }
+    token = jwt.encode(token_payload, SECRET_KEY, algorithm="HS256")
+
+    # Return token + user info
+    return jsonify({
+        "message": f"Welcome {user.full_name}!",
+        "token": token,
+        "user": {
+            "id": str(user.id),
+            "name": user.full_name,
+            "email": user.email_or_phone
+        }
+    }), 200

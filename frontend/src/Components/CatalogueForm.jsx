@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useContext  } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { Link } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
+import { AuthContext } from "../Components/AuthContext";
 
 // Toast Component
 const Toast = ({ message, duration = 3000, onDone }) => {
@@ -94,13 +95,21 @@ const CataloguePage = () => {
 
   // Auth / checkout
   const [checkoutMode, setCheckoutMode] = useState(false);
-  //const [isLoggedIn, setIsLoggedIn] = useState(false);
   // const [isLoggedIn, setIsLoggedIn] = useState(false); // default true for testing
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-  return localStorage.getItem("isLoggedIn") === "true";    
-  });
-
   const [userPhone, setUserPhone] = useState("254703622386"); // default
+  const { user,logout } = useContext(AuthContext);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+
+  const navigate = useNavigate();
+
+  
+
+  useEffect(() => {
+    if (user) setIsLoggedIn(true);
+  }, [user]);
+
+  console.log("Is logged in?", isLoggedIn);
 
   // Cart
   const [cart, setCart] = useState(() => {
@@ -140,6 +149,12 @@ const CataloguePage = () => {
   const id = Date.now();
   setToasts(prev => [...prev, { id, message }]);
 };
+
+const handleLogout = () => {
+    logout();            // Clear session
+    
+    navigate("/products"); // Redirect user
+  };
 
 
   // Fetch products
@@ -207,69 +222,11 @@ const resolveImage = (imgUrl) => {
 
 
   // Handle Checkout
-// const handleCheckoutRedirect = (e) => {
-//   const target = isLoggedIn ? "/checkout" : "/login";
-
-//   if (!isLoggedIn) {
-//     // Show toast
-//     const toastEl = document.createElement("div");
-//     toastEl.className =
-//       "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
-//     toastEl.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>Please log in first`;
-//     toastEl.style.zIndex = 1055;
-//     toastEl.style.minWidth = "220px";
-//     toastEl.style.opacity = "0";
-//     toastEl.style.transform = "translateY(-60px)";
-//     toastEl.style.transition = "opacity 0.5s ease, transform 0.5s ease";
-//     document.body.appendChild(toastEl);
-
-//     requestAnimationFrame(() => {
-//       toastEl.style.opacity = "1";
-//       toastEl.style.transform = "translateY(0)";
-//     });
-
-//     setTimeout(() => {
-//       toastEl.style.opacity = "0";
-//       toastEl.style.transform = "translateY(-20px)";
-
-//       setTimeout(() => {
-//         document.body.removeChild(toastEl);
-
-//         // Fade out page
-//         document.body.style.transition = "opacity 0.6s ease";
-//         document.body.style.opacity = 0;
-
-//         // Redirect
-//         setTimeout(() => {
-//           window.location.href = target;
-//         }, 600);
-//       }, 500);
-//     }, 2500);
-
-//     return; // stop further execution
-//   }
-
-//   // Save checkout data
-//   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-//   localStorage.setItem("checkoutData", JSON.stringify({ cart, subtotal }));
-
-//   // Animate button
-//   e.currentTarget.style.transform = "scale(1.1)";
-//   e.currentTarget.style.opacity = "0.7";
-
-//   // Fade out page and redirect
-//   document.body.style.transition = "opacity 0.6s ease";
-//   document.body.style.opacity = 0;
-//   setTimeout(() => {
-//     window.location.href = target;
-//   }, 600);
-// };
-//  //End
-
-// Refactored handleCheckoutRedirect
 const handleCheckoutRedirect = (e) => {
+  const target = isLoggedIn ? "/checkout" : "/login";
+
   if (!isLoggedIn) {
-    // User not logged in → show toast and redirect
+    // Show toast
     const toastEl = document.createElement("div");
     toastEl.className =
       "position-fixed top-0 end-0 m-3 p-3 bg-danger text-white shadow-lg rounded-4";
@@ -289,33 +246,40 @@ const handleCheckoutRedirect = (e) => {
     setTimeout(() => {
       toastEl.style.opacity = "0";
       toastEl.style.transform = "translateY(-20px)";
+
       setTimeout(() => {
         document.body.removeChild(toastEl);
-        // Fade out page then redirect to login
+
+        // Fade out page
         document.body.style.transition = "opacity 0.6s ease";
         document.body.style.opacity = 0;
+
+        // Redirect
         setTimeout(() => {
-          window.location.href = "/login";
+          window.location.href = target;
         }, 600);
       }, 500);
     }, 2500);
 
-    return; // Stop further execution
+    return; // stop further execution
   }
 
-  // User is logged in → proceed to checkout modal
-  setCheckoutMode(true);
-  setShowCart(true);
+  // Save checkout data
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  localStorage.setItem("checkoutData", JSON.stringify({ cart, subtotal }));
 
-  // Optional: small button animation feedback
-  e.currentTarget.style.transform = "scale(1.05)";
-  e.currentTarget.style.opacity = "0.85";
+  // Animate button
+  e.currentTarget.style.transform = "scale(1.1)";
+  e.currentTarget.style.opacity = "0.7";
+
+  // Fade out page and redirect
+  document.body.style.transition = "opacity 0.6s ease";
+  document.body.style.opacity = 0;
   setTimeout(() => {
-    e.currentTarget.style.transform = "";
-    e.currentTarget.style.opacity = "";
-  }, 200);
+    window.location.href = target;
+  }, 600);
 };
-
+ //End
   
 
   // Cart manipulation functions
@@ -540,12 +504,12 @@ const handleCheckoutRedirect = (e) => {
                           </li>
                           <li><hr className="dropdown-divider my-1" /></li>
                           <li>
-                            <button
-                              className="dropdown-item py-1 text-success"
-                              onClick={() => setIsLoggedIn(false)}
-                            >
-                              <i className="bi bi-box-arrow-right me-2"></i> Logout
-                            </button>
+                           <button
+                          className="dropdown-item py-1 text-success"
+                          onClick={handleLogout}                          
+                        >
+                          <i className="bi bi-box-arrow-right me-2"></i> Logout
+                        </button>
                           </li>
                         </ul>
                       </div>

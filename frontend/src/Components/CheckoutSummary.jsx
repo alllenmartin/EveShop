@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../Components/AuthContext";
 
 const CheckoutSummary = () => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem("cart") || "[]"));
   const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "254703622386");
@@ -94,51 +96,151 @@ const CheckoutSummary = () => {
     }, 60);
   };
 
-  const placeOrder = () => {
-    if (cart.length === 0) return showToastMessage("Your cart is empty!", "danger");
-    if (!deliveryDate || !deliveryTime) return alert("Select delivery date and time.");
+  // const placeOrder = () => {
+  //   if (cart.length === 0) return showToastMessage("Your cart is empty!", "danger");
+  //   if (!deliveryDate || !deliveryTime) return alert("Select delivery date and time.");
 
-    if (useWallet && walletUsageAmount > 0) {
-      setWalletBalance(prev => prev - computedWalletDeduction);
-      localStorage.setItem("walletBalance", (walletBalance - computedWalletDeduction).toString());
-    }
+  //   if (useWallet && walletUsageAmount > 0) {
+  //     setWalletBalance(prev => prev - computedWalletDeduction);
+  //     localStorage.setItem("walletBalance", (walletBalance - computedWalletDeduction).toString());
+  //   }
 
-    if (paymentMethod === "mpesa" && remainingPayment > 0) {
-      if (!isValidMpesaNumber(mpesaNumber)) {
-        return showToastMessage("Enter a valid M-Pesa number", "danger");
-      }
-      handleMpesaPush(remainingPayment);
-    }
+  //   if (paymentMethod === "mpesa" && remainingPayment > 0) {
+  //     if (!isValidMpesaNumber(mpesaNumber)) {
+  //       return showToastMessage("Enter a valid M-Pesa number", "danger");
+  //     }
+  //     handleMpesaPush(remainingPayment);
+  //   }
 
-    const finalPaymentMethod = remainingPayment === 0 && useWallet ? "wallet" : paymentMethod;
+  //   const finalPaymentMethod = remainingPayment === 0 && useWallet ? "wallet" : paymentMethod;
 
-    const order = {
-      reference: `ORDER-${Date.now()}-${Math.random().toString(36).substring(2,6).toUpperCase()}`,
-      userPhone,
-      items: cart,
-      deliveryMethod: selectedDelivery,
-      deliveryFee,
-      deliveryDate,
-      deliveryTime,
-      paymentMethod: finalPaymentMethod,
-      total,
-      walletDeduction: computedWalletDeduction,
-      remainingPayment,
-      address: userAddress,
-    };
+  //   const order = {
+  //     reference: `ORDER-${Date.now()}-${Math.random().toString(36).substring(2,6).toUpperCase()}`,
+  //     userPhone,
+  //     items: cart,
+  //     deliveryMethod: selectedDelivery,
+  //     deliveryFee,
+  //     deliveryDate,
+  //     deliveryTime,
+  //     paymentMethod: finalPaymentMethod,
+  //     total,
+  //     walletDeduction: computedWalletDeduction,
+  //     remainingPayment,
+  //     address: userAddress,
+  //   };
 
     
-    console.log("Placing order:", order);
+  //   console.log("Placing order:", order);
+  //   showToastMessage("Order placed successfully!");
+  //   setCart([]);
+  //   localStorage.removeItem("cart");
+
+  //   const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+  //   existingOrders.push(order);
+  //   localStorage.setItem("orders", JSON.stringify(existingOrders));
+
+
+  // };
+
+const placeOrder = async () => {
+  if (cart.length === 0) return showToastMessage("Your cart is empty!", "danger");
+  if (!deliveryDate || !deliveryTime) return alert("Select delivery date and time.");
+
+  console.log("AuthContext user:", user); // Debug: check what your user object contains
+
+  // Adjust this field based on your AuthContext
+
+  // Helper to decode JWT payload
+const parseJwt = (token) => {
+  try {
+    const base64Payload = token.split(".")[1];
+    const payload = atob(base64Payload);
+    return JSON.parse(payload);
+  } catch (e) {
+    return null;
+  }
+};
+
+// Inside placeOrder
+const token = user; // your AuthContext gives the JWT
+const decoded = parseJwt(token);
+
+if (!decoded?.user_id) {
+  return showToastMessage("User not logged in", "danger");
+}
+
+const userId = decoded.user_id; // t
+  // const userId = user?._id || user?.id;
+  if (!userId) return showToastMessage("User not logged in", "danger");
+
+  // Deduct wallet if used
+  if (useWallet && walletUsageAmount > 0) {
+    setWalletBalance(prev => prev - computedWalletDeduction);
+  }
+
+  const finalPaymentMethod = remainingPayment === 0 && useWallet ? "wallet" : paymentMethod;
+
+  // Build payload for backend
+  const orderPayload = {
+    user_id: userId, // use correct ID
+    quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
+    total_amount: total,
+    items: cart.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity
+    })),
+    deliveryMethod: selectedDelivery,
+    deliveryFee,
+    deliveryDate,
+    deliveryTime,
+    paymentMethod: finalPaymentMethod,
+    walletDeduction: computedWalletDeduction,
+    remainingPayment,
+    address: userAddress,
+    reference: `ORDER-${Date.now()}-${Math.random().toString(36).substring(2,6).toUpperCase()}`,
+    userPhone
+  };
+
+  try {
+    const res = await fetch("http://localhost:5000/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderPayload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Order Placement Error:", data);
+      showToastMessage("Failed to place order", "danger");
+      return;
+    }
+
+    // Order success
     showToastMessage("Order placed successfully!");
+    console.log("Order placed:", data);
+
+    // Clear cart
     setCart([]);
     localStorage.removeItem("cart");
 
+    // Save to local orders for history
     const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-existingOrders.push(order);
-localStorage.setItem("orders", JSON.stringify(existingOrders));
+    existingOrders.push(orderPayload);
+    localStorage.setItem("orders", JSON.stringify(existingOrders));
+
+    // Optionally redirect user after order
+    navigate("/orders");
+
+  } catch (err) {
+    console.error("Order Placement Exception:", err);
+    showToastMessage("Failed to place order", "danger");
+  }
+};
 
 
-  };
 
  return (
     <div style={{ background: "#f9f9f9", minHeight: "100vh" }}>

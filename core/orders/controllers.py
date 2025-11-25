@@ -21,48 +21,96 @@ def list_all_orders_controller():
 # --------------------------
 # CREATE order
 # --------------------------
-def create_order_controller():
-     try:
-       request_form = request.form.to_dict()       
-       try:
-          data = order_schema.load(request_form)
-          print(data)
-       except ValidationError as err:
-         return jsonify(err.messages), 400
+# def create_order_controller():
+#      try:
+#        request_form = request.form.to_dict()       
+#        try:
+#           data = order_schema.load(request_form)
+#           print(data)
+#        except ValidationError as err:
+#          return jsonify(err.messages), 400
      
    
 
   
-       new_order = Orders(**data)
-       db.session.add(new_order)
-       db.session.commit()
+#        new_order = Orders(**data)
+#        db.session.add(new_order)
+#        db.session.commit()
 
-     except IntegrityError as e:
+#      except IntegrityError as e:
+#         db.session.rollback()
+#         if isinstance(e.orig, psycopg2.errors.UniqueViolation):
+#             return jsonify({
+#                 "error": f"Category with the name '{request_form['id']}' already exists."
+#             }), 400
+#         return jsonify({"error": str(e)}), 500
+    
+#         # Other Role Backs
+    
+#      except Exception as e:
+#         db.session.rollback()
+#         return jsonify({"error": str(e)}), 500
+
+
+#      return jsonify({
+#     "success": True,
+#     "message": "Product created successfully!",
+#     "data": {
+#         "id": new_order.id,
+#         "user id": new_order.user_id,
+#         "quantity": new_order.quantity,
+#         "total_amount": new_order.total_amount
+#      }
+#       })
+
+def create_order_controller():
+    try:
+        # Get form or JSON data
+        if request.is_json:
+            request_data = request.get_json()
+        else:
+            request_data = request.form.to_dict()
+
+        # Validate data
+        try:
+            data = order_schema.load(request_data)
+            print("Validated data:", data)
+        except ValidationError as err:
+            return jsonify({"errors": err.messages}), 400
+
+        # Only keep fields your model expects
+        allowed_fields = ["user_id", "quantity", "total_amount"]
+        order_data = {k: v for k, v in data.items() if k in allowed_fields}
+
+        # If you want to store items, add it separately
+        if "items" in data:
+            order_data["items"] = data["items"]  # Ensure your model has items column (JSON)
+
+        # Create order
+        new_order = Orders(**order_data)
+        db.session.add(new_order)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Order created successfully!",
+            "data": {
+                "id": new_order.id,
+                "user_id": new_order.user_id,
+                "quantity": new_order.quantity,
+                "total_amount": new_order.total_amount
+            }
+        })
+
+    except IntegrityError as e:
         db.session.rollback()
         if isinstance(e.orig, psycopg2.errors.UniqueViolation):
-            return jsonify({
-                "error": f"Category with the name '{request_form['id']}' already exists."
-            }), 400
+            return jsonify({"error": f"Order with ID '{request_data.get('id')}' already exists."}), 400
         return jsonify({"error": str(e)}), 500
-    
-        # Other Role Backs
-    
-     except Exception as e:
+
+    except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-
-     return jsonify({
-    "success": True,
-    "message": "Product created successfully!",
-    "data": {
-        "id": new_order.id,
-        "user id": new_order.user_id,
-        "quantity": new_order.quantity,
-        "total_amount": new_order.total_amount
-     }
-      })
-     
      
 # --------------------------
 # EDIT order

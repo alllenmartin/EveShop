@@ -149,7 +149,7 @@ const OrdersPage = () => {
                   <div className="d-flex justify-content-between align-items-start">
                     <div className="flex-grow-1">
                       <h6 className="fw-bold text-success mb-1">{order.reference}</h6>
-                      <p className="mb-1"><strong>Total:</strong> KSh {order.total.toLocaleString()}</p>
+                      <p className="mb-1"><strong>Total:</strong> KSh {(order.total ?? order.total_amount ?? 0).toLocaleString()}</p>
                       <p className="mb-1"><strong>Delivery:</strong> {order.deliveryMethod} ({order.deliveryDate} at {order.deliveryTime})</p>
                       <p className="mb-1"><strong>Payment:</strong> {order.paymentMethod}</p>
                       <p className="mb-1"><strong>Address:</strong> {formatAddress(order.address)}</p>
@@ -235,7 +235,7 @@ const OrdersPage = () => {
               <div key={order.reference} className="card mb-3 border-0 shadow-sm rounded-4 bg-light">
                 <div className="card-body">
                   <h6 className="fw-bold text-danger mb-1">{order.reference}</h6>
-                  <p className="mb-1"><strong>Total:</strong> KSh {order.total.toLocaleString()}</p>
+                  <p className="mb-1"><strong>Total:</strong> KSh {(order.total ?? order.total_amount ?? 0).toLocaleString()}</p>
                   <p className="mb-1"><strong>Delivery:</strong> {order.deliveryMethod} ({order.deliveryDate} at {order.deliveryTime})</p>
                   <p className="mb-1"><strong>Payment:</strong> {order.paymentMethod}</p>
                   <p className="mb-1"><strong>Address:</strong> {formatAddress(order.address)}</p>
